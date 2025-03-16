@@ -4,14 +4,15 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>1be618d2-9d8b-4639-aaa1-d5c76da491a9</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Testfile_ParameterFitting&amp;Co.py</StartupFile>
+    <StartupFile>Testfile_JustificationOfPlots.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>Immunologie_ODE</Name>
     <RootNamespace>Immunologie_ODE</RootNamespace>
-    <InterpreterId>Global|VisualStudio|env_Immunologie_ODE</InterpreterId>
+    <InterpreterId>Global|VisualStudio|gdg</InterpreterId>
+    <TestFramework>unittest</TestFramework>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,12 +26,14 @@
     <Compile Include="backup_11122024_1003.py" />
     <Compile Include="ChosenParameterFitting - Copy.py" />
     <Compile Include="ChosenParameterFitting.py" />
-    <Compile Include="plots.py" />
     <Compile Include="ODE_systems.py" />
-    <Compile Include="Testfile_ParameterFitting&amp;Co.py" />
+    <Compile Include="PlotOverTime.py" />
+    <Compile Include="Testfile_JustificationOfPlots.py" />
+    <Compile Include="Testfile_ParameterFittingCo.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|VisualStudio|env_Immunologie_ODE" />
+    <InterpreterReference Include="Global|VisualStudio|gdg" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

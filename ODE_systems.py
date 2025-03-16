@@ -6,7 +6,7 @@
 ## wout.geysen@student.uantwerpen.be
 
 import numpy as np
-from scipy.integrate import odeint
+from scipy.integrate import odeint, solve_ivp
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.gridspec as gridspec
@@ -80,7 +80,7 @@ def dT_dt_Advanced_memory(t, populations):
     return np.array([dTconv_dt, dTreg_dt, 0, dMreg_dt])
 
 
-def dT_dt_Advanced_cytokine(t, populations):
+def dT_dt_Advanced_cytokine(t, populations, params):
     # Fix the unpacking syntax
     Tconv_pop, Treg_pop, IL2, _ = populations
     
@@ -131,6 +131,7 @@ def get_color(value, parameter_values, cmap = cm.brg):
     normalized_value = (value - min_val) / (max_val - min_val)
     return cmap(normalized_value)
     
+
 
 def compare_variable_values(parameter_name, parameter_values, param, 
                             initial_populations, timestamps=(0, 100, 100),
