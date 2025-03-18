@@ -1,6 +1,5 @@
 from PlotOverTime import solve_and_plot_system
-from ChosenParameterFitting import compare_conditions, fit_parameters, plot_fit, sensitivity_analysis, sensitivity_analysis_all
-from ODE_systems import compare_equation_systems, compare_variable_values, heatmap, stochastic_effects
+from ChosenParameterFitting import fit_parameters, plot_fit, sensitivity_analysis_all
 import pandas as pd
 import numpy as np
 
@@ -13,6 +12,24 @@ params_cytokine = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay", "Treg_r
                        "IL2_consumption"]
 params_memory = ["Tconv_suppress_base", "K_reg", "tau", "Mreg_conversion_base", "Tconv_prolif", "Tconv_decay",
                        "Treg_recruitment", "Treg_growth", "Treg_decay", "Mreg_growth", "Mreg_decay"]
+
+#########################################
+#--- Parameter sensitivity of system ---#
+#########################################
+
+# sensitivity_analysis_all("Normal", df, "memory", params_to_compare=params_memory, variations=[-0.25, -0.2, -0.15, -0.1, -0.05,  0., 0.05, 0.1, 0.15, 0.2, 0.25])
+sensitivity_analysis_all("Normal", df, "cytokine", params_to_compare=params_cytokine, variations=[-0.25, -0.2, -0.15, -0.1, -0.05,  0., 0.05, 0.1, 0.15, 0.2, 0.25])
+
+
+
+
+
+
+
+
+
+
+
 
 fixed_values = {
     "Mreg_growth": 0.,
@@ -62,4 +79,5 @@ for key, value in selected_params.items():
     print(f"{key}: {value}")
 print("\n\n")
 selected_params_list = list(selected_params.values())
-plot_fit("Autoimmune", df, params=selected_params_list, system="memory")
+
+# plot_fit("Autoimmune", df, params=selected_params_list, system="memory")

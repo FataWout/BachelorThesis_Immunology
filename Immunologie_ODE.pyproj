@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>1be618d2-9d8b-4639-aaa1-d5c76da491a9</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Testfile_JustificationOfPlots.py</StartupFile>
+    <StartupFile>Testfile_ParameterFittingCo.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -26,6 +26,7 @@
     <Compile Include="backup_11122024_1003.py" />
     <Compile Include="ChosenParameterFitting - Copy.py" />
     <Compile Include="ChosenParameterFitting.py" />
+    <Compile Include="Models.py" />
     <Compile Include="ODE_systems.py" />
     <Compile Include="PlotOverTime.py" />
     <Compile Include="Testfile_JustificationOfPlots.py" />

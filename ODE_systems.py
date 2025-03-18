@@ -6,11 +6,11 @@
 ## wout.geysen@student.uantwerpen.be
 
 import numpy as np
-from scipy.integrate import odeint, solve_ivp
+from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.gridspec as gridspec
-
+from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory
 
 param = {
     "Tconv_suppress_base": 0.02,
@@ -52,62 +52,20 @@ parameter_descriptions = {
     "Mreg_decay": "Decay rate of Mreg cells, representing their natural death rate."
 }
 
+def dT_dt_Advanced_cytokine_mod(t, populations):
+    return dT_dt_Advanced_cytokine(t, populations, param)
 
-
-
-def dT_dt_Advanced_memory(t, populations):
-    # Reading out the current populations
-    Tconv_pop, Treg_pop, _ , Mreg_pop = populations
-    # Population dependent parameters:
-    suppress_rate_Tconv = param["Tconv_suppress_base"] * (1 - Treg_pop / (Treg_pop + param["K_reg"])) * (1 - np.e**(-t/param["tau"]))
-    conversion_rate_Mreg = param["Mreg_conversion_base"] * (t / (t +  param["tau"]))
-    
-
-    dTconv_dt = (param["Tconv_prolif"] * Tconv_pop 
-                    - param["Tconv_decay"] * Tconv_pop 
-                    - suppress_rate_Tconv * Tconv_pop * (Treg_pop + Mreg_pop) 
-                    - param["Treg_recruitment"] * Tconv_pop 
-                    )
-    dTreg_dt = (param["Treg_growth"] * Treg_pop 
-                    - param["Treg_decay"] * Treg_pop 
-                    + param["Treg_recruitment"] * Tconv_pop 
-                    - conversion_rate_Mreg * Treg_pop
-                    )
-    dMreg_dt = (conversion_rate_Mreg * (Treg_pop)
-                    + param["Mreg_growth"] * Mreg_pop
-                    - param["Mreg_decay"] * Mreg_pop
-                    )
-    return np.array([dTconv_dt, dTreg_dt, 0, dMreg_dt])
-
-
-def dT_dt_Advanced_cytokine(t, populations, params):
-    # Fix the unpacking syntax
-    Tconv_pop, Treg_pop, IL2, _ = populations
-    
-    suppress_rate_Tconv = param["Tconv_suppress_base"]
-                           #* (1 - Treg_pop / (Treg_pop + param["K_reg"])) 
-                           #                                  * (1 - np.exp(-t/param["tau"])))
-    
-    dTconv_dt = (param["Tconv_prolif"] * (IL2 / (IL2 + param["K_prolif"])) * Tconv_pop 
-                    - param["Tconv_decay"] * Tconv_pop 
-                    - suppress_rate_Tconv * (IL2 / (IL2 + param["K_suppress"])) * Tconv_pop * (Treg_pop) 
-                    - param["Treg_recruitment"] * (IL2 / (IL2 + param["K_recruitment"])) * Tconv_pop)
-    dTreg_dt = (param["Treg_growth"] * (IL2 / (IL2 + param["K_growth"])) * Treg_pop 
-                    - param["Treg_decay"] * Treg_pop 
-                    + param["Treg_recruitment"] * (IL2 / (IL2 + param["K_recruitment"])) * Tconv_pop)
-    dIL2_dt = (param["IL2_production"] * Tconv_pop 
-                    - param["IL2_consumption"] * (Tconv_pop + Treg_pop) * IL2)
-    
-    return np.array([dTconv_dt, dTreg_dt, dIL2_dt, 0])
+def dT_dt_Advanced_memory_mod(t, populations):
+    return dT_dt_Advanced_memory(t, populations, param)
 
 def solve_odeint(equation_system = "Memory", initial_populations = [100, 10, 25, 2], timestamps=np.linspace(0, 100, 100)):   
     """Solves given equation system for given timestamps."""
     # Check which equation system was given to use and solve using that model        
     if equation_system == "Memory":
-        return odeint(dT_dt_Advanced_memory, initial_populations, timestamps, tfirst=True)
+        return odeint(dT_dt_Advanced_memory_mod, initial_populations, timestamps, tfirst=True)
     elif equation_system == "Cytokine":
-        return odeint(dT_dt_Advanced_cytokine, initial_populations, timestamps, tfirst=True)
-        
+        return odeint(dT_dt_Advanced_cytokine_mod, initial_populations, timestamps, tfirst=True)
+
 
 def get_variable_explanation(parameter_name):
     """Returns the explanation for a given parameter."""

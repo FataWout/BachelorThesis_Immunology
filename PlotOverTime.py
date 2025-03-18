@@ -11,52 +11,7 @@ from scipy.integrate import odeint, solve_ivp
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.gridspec as gridspec
-
-
-def dT_dt_Advanced_memory(t, populations, param):
-    # Reading out the current populations
-    Tconv_pop, Treg_pop, _ , Mreg_pop = populations
-    # Population dependent parameters:
-    suppress_rate_Tconv = param["Tconv_suppress_base"] * (1 - Treg_pop / (Treg_pop + param["K_reg"])) * (1 - np.e**(-t/param["tau"]))
-    conversion_rate_Mreg = param["Mreg_conversion_base"] * (t / (t +  param["tau"]))
-    
-
-    dTconv_dt = (param["Tconv_prolif"] * Tconv_pop 
-                    - param["Tconv_decay"] * Tconv_pop 
-                    - suppress_rate_Tconv * Tconv_pop * (Treg_pop + Mreg_pop) 
-                    - param["Treg_recruitment"] * Tconv_pop 
-                    )
-    dTreg_dt = (param["Treg_growth"] * Treg_pop 
-                    - param["Treg_decay"] * Treg_pop 
-                    + param["Treg_recruitment"] * Tconv_pop 
-                    - conversion_rate_Mreg * Treg_pop
-                    )
-    dMreg_dt = (conversion_rate_Mreg * (Treg_pop)
-                    + param["Mreg_growth"] * Mreg_pop
-                    - param["Mreg_decay"] * Mreg_pop
-                    )
-    return np.array([dTconv_dt, dTreg_dt, 0, dMreg_dt])
-
-
-def dT_dt_Advanced_cytokine(t, populations, params):
-    # Fix the unpacking syntax
-    Tconv_pop, Treg_pop, IL2, _ = populations
-    
-    suppress_rate_Tconv = params["Tconv_suppress_base"]
-                           #* (1 - Treg_pop / (Treg_pop + param["K_reg"])) 
-                           #                                  * (1 - np.exp(-t/param["tau"])))
-    
-    dTconv_dt = (params["Tconv_prolif"] * (IL2 / (IL2 + params["K_prolif"])) * Tconv_pop 
-                    - params["Tconv_decay"] * Tconv_pop 
-                    - suppress_rate_Tconv * (IL2 / (IL2 + params["K_suppress"])) * Tconv_pop * (Treg_pop) 
-                    - params["Treg_recruitment"] * (IL2 / (IL2 + params["K_recruitment"])) * Tconv_pop)
-    dTreg_dt = (params["Treg_growth"] * (IL2 / (IL2 + params["K_growth"])) * Treg_pop 
-                    - params["Treg_decay"] * Treg_pop 
-                    + params["Treg_recruitment"] * (IL2 / (IL2 + params["K_recruitment"])) * Tconv_pop)
-    dIL2_dt = (params["IL2_production"] * Tconv_pop 
-                    - params["IL2_consumption"] * (Tconv_pop + Treg_pop) * IL2)
-    
-    return np.array([dTconv_dt, dTreg_dt, dIL2_dt, 0])
+from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory
 
 def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory"):
     """

@@ -6,49 +6,9 @@ from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import copy
-    
+from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory
+param ={}
 
-def dT_dt_Advanced_memory(t, populations, param, *args):
-    # Fix the unpacking syntax
-    Tconv_pop, Treg_pop, _, Mreg_pop = populations
-    
-    suppress_rate_Tconv = (param["Tconv_suppress_base"] * (1 - Treg_pop / (Treg_pop + param["K_reg"])) 
-                                                             * (1 - np.exp(-t/param["tau"])))
-    conversion_rate_Mreg = param["Mreg_conversion_base"] * (t / (t + param["tau"]))
-    
-    dTconv_dt = (param["Tconv_prolif"] * Tconv_pop 
-                    - param["Tconv_decay"] * Tconv_pop 
-                    - suppress_rate_Tconv * Tconv_pop * (Treg_pop + Mreg_pop) 
-                    - param["Treg_recruitment"] * Tconv_pop)
-    dTreg_dt = (param["Treg_growth"] * Treg_pop 
-                    - param["Treg_decay"] * Treg_pop 
-                    + param["Treg_recruitment"] * Tconv_pop 
-                    - conversion_rate_Mreg * Treg_pop)
-    dMreg_dt = (conversion_rate_Mreg * Treg_pop
-                    + param["Mreg_growth"] * Mreg_pop
-                    - param["Mreg_decay"] * Mreg_pop)
-    
-    return np.array([dTconv_dt, dTreg_dt, 0, dMreg_dt])
-
-def dT_dt_Advanced_cytokine(t, populations, param, *args):
-    # Fix the unpacking syntax
-    Tconv_pop, Treg_pop, IL2, _ = populations
-    
-    suppress_rate_Tconv = param["Tconv_suppress_base"]
-                           #* (1 - Treg_pop / (Treg_pop + param["K_reg"])) 
-                           #                                  * (1 - np.exp(-t/param["tau"])))
-    
-    dTconv_dt = (param["Tconv_prolif"] * (IL2 / (IL2 + param["K_prolif"])) * Tconv_pop 
-                    - param["Tconv_decay"] * Tconv_pop 
-                    - suppress_rate_Tconv * (IL2 / (IL2 + param["K_suppress"])) * Tconv_pop * (Treg_pop) 
-                    - param["Treg_recruitment"] * (IL2 / (IL2 + param["K_recruitment"])) * Tconv_pop)
-    dTreg_dt = (param["Treg_growth"] * (IL2 / (IL2 + param["K_growth"])) * Treg_pop 
-                    - param["Treg_decay"] * Treg_pop 
-                    + param["Treg_recruitment"] * (IL2 / (IL2 + param["K_recruitment"])) * Tconv_pop)
-    dIL2_dt = (param["IL2_production"] * Tconv_pop 
-                    - param["IL2_consumption"] * (Tconv_pop + Treg_pop) * IL2)
-    
-    return np.array([dTconv_dt, dTreg_dt, dIL2_dt, 0])
 
 def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None, output_format='dict', system="Memory"):
     """
@@ -136,6 +96,7 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
         for i, param_name in enumerate(fit_param_names):
             param_dict[param_name] = params_to_fit[i]
 
+        param = all_params
         if system_num == 1:
             sol = solve_ivp(dT_dt_Advanced_memory, [time[0], time[-1]], y_data[:, 0], 
                             args=[param_dict], t_eval=time, method='BDF')
@@ -150,11 +111,9 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
             sol_y_interp = sol.y
 
         squared_difference = np.sum((sol_y_interp - y_data) ** 2)
-        # print(f"Sum of squared differences: {squared_difference}")
 
         ss_total = np.sum((y_data - np.mean(y_data, axis=1, keepdims=True)) ** 2)
         r2_score = 1 - (squared_difference / ss_total)
-        # print(f"R^2 coefficient of determination: {r2_score}")
 
         return (sol_y_interp - y_data).ravel()
     
@@ -180,7 +139,6 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
         return result_list
     else:
         raise ValueError("output_format must be either 'dict' or 'list'")
-
 
 def plot_fit(condition, df, params=None, system="Memory"):
     time = df["Time (days)"].values
@@ -231,6 +189,7 @@ def plot_fit(condition, df, params=None, system="Memory"):
         exit 
         
     plt.figure(figsize=(10, 6))
+    param = param_dict
     if system == "memory":
         sol = solve_ivp(dT_dt_Advanced_memory, [time[0], time[-1]], y0, args=[param_dict], t_eval=time)
         plt.plot(time, Mreg_data, 'bo', label='Mreg Data')
@@ -297,14 +256,14 @@ def sensitivity_analysis(condition, df, parameter_name, system="Memory", variati
     """
     # Fit parameters to get baseline values
     fitted_params = fit_parameters(condition, df, output_format='dict', system=system)
-    print(fitted_params)
     if parameter_name not in fitted_params:
         raise ValueError(f"Parameter '{parameter_name}' not found in fitted parameters.")
     
     base_value = fitted_params[parameter_name]
 
     results = []
-    
+    r2_scores = []
+    variation_labels = []
     # Extract the data
     time = df["Time (days)"].values
     Tconv_data = df[f"Tconv_{condition}"].values
@@ -325,7 +284,7 @@ def sensitivity_analysis(condition, df, parameter_name, system="Memory", variati
     for var in variations:
         modified_params = copy.deepcopy(fitted_params)
         modified_params[parameter_name] = base_value * (1 + var)
-        
+        param=modified_params
         # Solve the system
         sol = solve_ivp(system_func, [time[0], time[-1]], y_data[:, 0], args=[modified_params], t_eval=time, method='BDF')
         
@@ -340,10 +299,30 @@ def sensitivity_analysis(condition, df, parameter_name, system="Memory", variati
         squared_difference = np.sum((sol_y_interp - y_data) ** 2)
         ss_total = np.sum((y_data - np.mean(y_data, axis=1, keepdims=True)) ** 2)
         r2_score = 1 - (squared_difference / ss_total)
+        if r2_score < 0:
+            r2_score =0
+        variation_label = f"{(1+var)*100:.0f}%"
         print(f"{parameter_name} = {modified_params[parameter_name]} ({(1+var)*100:.0f}%) ; R^2 Score = {r2_score}")
-        results.append({"Variation": f"{(1+var)*100:.0f}%", "R^2 Score": r2_score})
+        results.append({"Variation": f"{variation_label}", "R^2 Score": r2_score} )
+       
+        r2_scores.append(r2_score)
+        variation_labels.append(variation_label)
+        # Find baseline R^2 (corresponding to variation == 0.0)
+    try:
+        baseline_index = variations.index(0.0)
+        baseline_r2 = r2_scores[baseline_index]
+    except ValueError:
+        raise ValueError("Variation list must include 0.0 to define baseline R^2.")
     
-    return pd.DataFrame(results)
+    # Compute sum of absolute differences from baseline (excluding baseline itself)
+    r2_diff_sum = sum(abs(r2 - baseline_r2) for idx, r2 in enumerate(r2_scores) if idx != baseline_index)
+    print(f"Sum of absolute R^2 differences from baseline for {parameter_name}: {r2_diff_sum:.4f}")
+    
+    
+    return {
+        "Results": pd.DataFrame(results),
+        "Sum_R2_Differences": r2_diff_sum
+    }
 
 def sensitivity_analysis_all(condition, df, system="Memory", params_to_skip = [], params_to_compare = [], variations = [-0.25, -0.10, 0., 0.10, 0.25]):
     """
@@ -366,15 +345,17 @@ def sensitivity_analysis_all(condition, df, system="Memory", params_to_skip = []
         if param in params_to_skip:
             continue
         if param in params_to_compare:
+            results[param] = {}
             df_results = sensitivity_analysis(condition, df, param, system, variations)
-            r2_values = [max(r2, 0) for r2 in df_results["R^2 Score"].values]
-            results[param] = r2_values
+            r2_values = [max(r2, 0) for r2 in df_results["Results"]["R^2 Score"].values]
+            results[param]["r2"] = r2_values
+            results[param]["r2_tot_diff"] = df_results["Sum_R2_Differences"]
     
     # Plot results
     variations = [str(var * 100) + "%" for var in variations]
     plt.figure(figsize=(12, 6))
-    for param, r2_scores in results.items():
-        plt.plot(variations, r2_scores, marker='o', label=param)
+    for param, values in results.items():
+        plt.plot(variations, values["r2"], marker='o', label=f"{param} ({values['r2_tot_diff']:.4e})")
     
     plt.xlabel("Parameter Variation")
     plt.ylabel("R^2 Score")
