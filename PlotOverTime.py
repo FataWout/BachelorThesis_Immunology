@@ -13,6 +13,7 @@ import matplotlib.cm as cm
 import matplotlib.gridspec as gridspec
 from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory
 
+
 def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory"):
     """
     Solves the ODE system and plots population dynamics.
