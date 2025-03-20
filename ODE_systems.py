@@ -1,3 +1,4 @@
+# This script is where all analysing functions for the models are written, for example the comparison between models, variable values, heatmaps,...
 
 # -*- coding: utf-8 -*-
 
@@ -10,7 +11,7 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.gridspec as gridspec
-from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory
+from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic
 
 param = {
     "Tconv_suppress_base": 0.02,
@@ -57,6 +58,9 @@ def dT_dt_Advanced_cytokine_mod(t, populations):
 
 def dT_dt_Advanced_memory_mod(t, populations):
     return dT_dt_Advanced_memory(t, populations, param)
+
+def dT_dt_Basic_mod(t, populations):
+    return dT_dt_Basic(t, populations, param)
 
 def solve_odeint(equation_system = "Memory", initial_populations = [100, 10, 25, 2], timestamps=np.linspace(0, 100, 100)):   
     """Solves given equation system for given timestamps."""
@@ -139,8 +143,8 @@ def compare_variable_values(parameter_name, parameter_values, param,
                 ax[i].plot(timestamps, reference_solution[:, 2], label=f"Cytokine levels ({equation_system})", linestyle=(0, (1, 1)), color="grey", linewidth=2)
             if plot_Mreg:
                 ax[i].plot(timestamps, reference_solution[:, 3], label=f"Reference Mreg ({reference_value})", linestyle="dashdot", color="grey", linewidth=1)
-            ax[i].plot(timestamps, reference_solution[:, 0], label=f"Reference Tconv ({reference_value})", linestyle="solid", color="grey", linewidth=1)
-            ax[i].plot(timestamps, reference_solution[:, 1], label=f"Reference Treg ({reference_value})", linestyle=(0, (5, 5)), color="grey", linewidth=1)
+        ax[i].plot(timestamps, reference_solution[:, 0], label=f"Reference Tconv ({reference_value})", linestyle="solid", color="grey", linewidth=1)
+        ax[i].plot(timestamps, reference_solution[:, 1], label=f"Reference Treg ({reference_value})", linestyle=(0, (5, 5)), color="grey", linewidth=1)
         
         # Solve for each altered value of the parameter
         for index, value in enumerate(parameter_values):
@@ -155,8 +159,8 @@ def compare_variable_values(parameter_name, parameter_values, param,
                     ax[i].plot(timestamps, altered_solution[:, 2], label=f"Cytokine levels ({value})", linestyle=(0, (1, 1)), color=get_color(index, indices), linewidth=2)
                 if plot_Mreg:
                     ax[i].plot(timestamps, altered_solution[:, 3], label=f"Mreg ({value})", linestyle="dashdot", color=get_color(index, indices), linewidth=1)
-                ax[i].plot(timestamps, altered_solution[:, 0], label=f"Tconv ({value})", linestyle="solid", color=get_color(index, indices))
-                ax[i].plot(timestamps, altered_solution[:, 1], label=f"Treg ({value})", linestyle=(0, (5, 5)), color=get_color(index, indices))
+            ax[i].plot(timestamps, altered_solution[:, 0], label=f"Tconv ({value})", linestyle="solid", color=get_color(index, indices))
+            ax[i].plot(timestamps, altered_solution[:, 1], label=f"Treg ({value})", linestyle=(0, (5, 5)), color=get_color(index, indices))
         
         # Customize the plot
         ax[i].set_title(f"{equation_system} model")

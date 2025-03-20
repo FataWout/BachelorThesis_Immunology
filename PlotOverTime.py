@@ -11,7 +11,7 @@ from scipy.integrate import odeint, solve_ivp
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.gridspec as gridspec
-from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory
+from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic
 
 
 def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory"):
@@ -31,6 +31,9 @@ def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory"):
         t_eval = np.linspace(t_span[0], t_span[1], 500)  # Default time resolution
 
     # Define ODE system with parameters
+    if system == "basic":
+        def ode_system(t, y):
+            return dT_dt_Basic(t, y, params)    
     if system == "memory":
         def ode_system(t, y):
             return dT_dt_Advanced_memory(t, y, params)

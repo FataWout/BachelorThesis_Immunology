@@ -1,4 +1,6 @@
 
+### This script is where all functions to fit are written
+
 import numpy as np
 import pandas as pd
 from scipy.integrate import solve_ivp
@@ -6,7 +8,7 @@ from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import copy
-from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory
+from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic
 param ={}
 
 
@@ -29,6 +31,20 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
     Treg_data = df[f"Treg_{condition}"].values
 
     system = system.lower()
+    if system == "basic":
+        system_num = 0
+        y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), np.zeros_like(Tconv_data)])
+        
+        # Define all parameters and their default initial values
+        all_params = {
+            "Tconv_suppress_base": 0.02,
+            "Tconv_prolif": 0.12,
+            "Tconv_decay": 0.05,
+            "Treg_recruitment": 0.01,
+            "Treg_growth": 0.08,
+            "Treg_decay": 0.03,
+        }
+
     if system == "memory":
         system_num = 1
         Mreg_data = df[f"Mreg_{condition}"].values
@@ -97,7 +113,10 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
             param_dict[param_name] = params_to_fit[i]
 
         param = all_params
-        if system_num == 1:
+        if system_num == 0:
+            sol = solve_ivp(dT_dt_Basic, [time[0], time[-1]], y_data[:, 0], 
+                            args=[param_dict], t_eval=time, method='BDF')
+        elif system_num == 1:
             sol = solve_ivp(dT_dt_Advanced_memory, [time[0], time[-1]], y_data[:, 0], 
                             args=[param_dict], t_eval=time, method='BDF')
         elif system_num == 2:
@@ -147,7 +166,20 @@ def plot_fit(condition, df, params=None, system="Memory"):
     if params == None:
         params = fit_parameters(condition, df, output_format="list", system=system)
     system = system.lower()
-    if system == "memory":
+    
+    if system == "basic":
+        # Define all parameters and their default initial values
+        param_dict = {
+            "Tconv_suppress_base": params[0],
+            "Tconv_prolif": params[1],
+            "Tconv_decay": params[2],
+            "Treg_recruitment": params[3],
+            "Treg_growth": params[4],
+            "Treg_decay": params[5],
+        }
+        y0 = [Tconv_data[0], Treg_data[0], 0, 0]
+
+    elif system == "memory":
         Mreg_data = df[f"Mreg_{condition}"].values
         # Define all parameters and their default initial values
         param_dict = {
@@ -190,7 +222,9 @@ def plot_fit(condition, df, params=None, system="Memory"):
         
     plt.figure(figsize=(10, 6))
     param = param_dict
-    if system == "memory":
+    if system == "basic":
+        sol = solve_ivp(dT_dt_Basic, [time[0], time[-1]], y0, args=[param_dict], t_eval=time)
+    elif system == "memory":
         sol = solve_ivp(dT_dt_Advanced_memory, [time[0], time[-1]], y0, args=[param_dict], t_eval=time)
         plt.plot(time, Mreg_data, 'bo', label='Mreg Data')
         plt.plot(time, sol.y[3], 'b-', label='Mreg Model')
@@ -217,7 +251,11 @@ def compare_conditions(conditions, df, params_to_compare=None, params_to_skip=No
         params = fit_parameters(condition, df, parameters_to_fit=parameters_to_fit, system=system, output_format="list")
         param_values[condition] = params
     systemname = system.lower()
-    if systemname=="memory":
+    if systemname=="basic":
+        param_names = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay",
+                       "Treg_recruitment", "Treg_growth", "Treg_decay"]
+        
+    elif systemname=="memory":
         param_names = ["Tconv_suppress_base", "K_reg", "tau", "Mreg_conversion_base", "Tconv_prolif", "Tconv_decay",
                        "Treg_recruitment", "Treg_growth", "Treg_decay", "Mreg_growth", "Mreg_decay"]
 
@@ -225,6 +263,7 @@ def compare_conditions(conditions, df, params_to_compare=None, params_to_skip=No
         param_names = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay", "Treg_recruitment", "Treg_growth",
                        "Treg_decay", "K_prolif", "K_suppress", "K_recruitment", "K_growth", "IL2_production", 
                        "IL2_consumption"]
+        
     if params_to_compare == None or not params_to_compare:
         params_to_compare = param_names
     filtered_indices = [i for i, name in enumerate(param_names) if name in params_to_compare and name not in params_to_skip]
@@ -240,7 +279,7 @@ def compare_conditions(conditions, df, params_to_compare=None, params_to_skip=No
     plt.xticks(rotation=45, ha="right")  # Rotate labels and align them to the right
     plt.tight_layout()  # Adjust layout to ensure everything fits well
     plt.show()
-
+    
 def sensitivity_analysis(condition, df, parameter_name, system="Memory", variations = [-0.25, -0.10, 0., 0.10, 0.25]):
     """
     Perform sensitivity analysis on a given parameter by varying its value and computing the R^2 score.
@@ -269,6 +308,9 @@ def sensitivity_analysis(condition, df, parameter_name, system="Memory", variati
     Tconv_data = df[f"Tconv_{condition}"].values
     Treg_data = df[f"Treg_{condition}"].values
     
+    if system.lower() == "basic":
+        system_func = dT_dt_Basic
+        y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), np.zeros_like(Tconv_data)])
     if system.lower() == "memory":
         system_func = dT_dt_Advanced_memory
         Mreg_data = df[f"Mreg_{condition}"].values

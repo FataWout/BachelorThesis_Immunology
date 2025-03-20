@@ -1,6 +1,24 @@
-
+### This script is where the main ODE models can be found
 import numpy as np
 import pandas as pd
+
+
+
+def dT_dt_Basic(t, populations, param):
+    Tconv_pop, Treg_pop, _ , _ = populations
+
+    dTconv_dt = (param["Tconv_prolif"] * Tconv_pop 
+                    - param["Tconv_decay"] * Tconv_pop 
+                    - param["Tconv_suppress_base"] * Tconv_pop * Treg_pop 
+                    - param["Treg_recruitment"] * Tconv_pop 
+                    )
+    
+    dTreg_dt = (param["Treg_growth"] * Treg_pop 
+                    - param["Treg_decay"] * Treg_pop 
+                    + param["Treg_recruitment"] * Tconv_pop 
+                    )
+    
+    return np.array([dTconv_dt, dTreg_dt])
 
 def dT_dt_Advanced_memory(t, populations, param):
     # Reading out the current populations

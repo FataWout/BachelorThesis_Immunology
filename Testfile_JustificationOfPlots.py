@@ -17,7 +17,7 @@ params_memory = ["Tconv_suppress_base", "K_reg", "tau", "Mreg_conversion_base", 
 #--- Parameter sensitivity of system ---#
 #########################################
 
-# sensitivity_analysis_all("Normal", df, "memory", params_to_compare=params_memory, variations=[-0.25, -0.2, -0.15, -0.1, -0.05,  0., 0.05, 0.1, 0.15, 0.2, 0.25])
+sensitivity_analysis_all("Normal", df, "memory", params_to_compare=params_memory, variations=[-0.25, -0.2, -0.15, -0.1, -0.05,  0., 0.05, 0.1, 0.15, 0.2, 0.25])
 sensitivity_analysis_all("Normal", df, "cytokine", params_to_compare=params_cytokine, variations=[-0.25, -0.2, -0.15, -0.1, -0.05,  0., 0.05, 0.1, 0.15, 0.2, 0.25])
 
 

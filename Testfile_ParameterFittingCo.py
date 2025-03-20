@@ -46,19 +46,19 @@ compare_conditions(["Normal", "Cancer", "Autoimmune"], df, params_to_compare=[],
 
 
 
-# Fit only prolif and other parameters (no decay)
-print("Fit only prolif and other parameters (no decay)")
-selected_params = fit_parameters(
-    "Normal", 
-    df,
-    parameters_to_fit=filtered_param_name_list, 
-    output_format="dict",
-    system = "memory")
-for key, value in selected_params.items():
-    print(f"{key}: {value}")
-print("\n\n")
-selected_params = list(selected_params.values())
-plot_fit("Normal", df, params=selected_params, system="memory")
+# # Fit only prolif and other parameters (no decay)
+# print("Fit only prolif and other parameters (no decay)")
+# selected_params = fit_parameters(
+#     "Normal", 
+#     df,
+#     parameters_to_fit=filtered_param_name_list, 
+#     output_format="dict",
+#     system = "memory")
+# for key, value in selected_params.items():
+#     print(f"{key}: {value}")
+# print("\n\n")
+# selected_params = list(selected_params.values())
+# plot_fit("Normal", df, params=selected_params, system="memory")
 
 
 # # Fit all parameters this time decays aswell.
@@ -82,7 +82,7 @@ plot_fit("Normal", df, params=selected_params, system="memory")
 #     print(f"{key}: {value}")
 # print("\n\n")
 # selected_params = list(selected_params.values())
-# plot_fit("Normal", df, params=selected_params, system="cytokine")
+# # plot_fit("Normal", df, params=selected_params, system="cytokine")
 
 
 # Fit only specific parameters for cancerous conditions
@@ -90,7 +90,7 @@ print("Fit only specific parameters for cancerous conditions")
 selected_params = fit_parameters(
     "Cancer", 
     df,
-    parameters_to_fit=["K_prolif", "K_growth", "K_suppress", "K_recruitment", "Treg_recruitment", "Tconv_suppress_base"], 
+    # parameters_to_fit=["K_prolif", "K_growth", "K_suppress", "K_recruitment", "Treg_recruitment", "Tconv_suppress_base",  "IL2_consumption", "IL2_production"], 
     output_format="dict",
     system = "cytokine")
 for key, value in selected_params.items():
@@ -105,7 +105,7 @@ plot_fit("Cancer", df, params=selected_params, system="cytokine")
 # selected_params = fit_parameters(
 #     "Autoimmune", 
 #     df,
-#     parameters_to_fit=["K_prolif", "K_growth", "K_suppress", "K_recruitment", "Treg_recruitment", "Tconv_suppress_base"], 
+#     parameters_to_fit=["K_prolif", "K_growth", "K_suppress", "K_recruitment", "Treg_recruitment", "Tconv_suppress_base",  "IL2_consumption", "IL2_production"], 
 #     output_format="dict",
 #     system = "cytokine")
 # for key, value in selected_params.items():
@@ -116,26 +116,26 @@ plot_fit("Cancer", df, params=selected_params, system="cytokine")
 
 
 
-# # Fit some parameters while fixing others
-# print("Fit some parameters while fixing others in normal conditions while giving others a different stationary value.")
-# fixed_values = {
-#     "Tconv_prolif": 0.15,
-#     "Tconv_decay": 0.06,
-#     "Mreg_decay": 0.008
-# }
-# mixed_params = fit_parameters(
-#     "Normal", 
-#     df,
-#     parameters_to_fit=["K_prolif", "K_growth", "K_suppress", "K_recruitment", "Treg_recruitment", "Tconv_suppress_base"],
-#     fixed_parameters=fixed_values,
-#     output_format="dict",
-#     system = "cytokine"
-# )
-# for key, value in mixed_params.items():
-#     print(f"{key}: {value}")
-# print("\n\n")
-# mixed_params = list(mixed_params.values())
-# plot_fit("Normal", df, mixed_params)
+# Fit some parameters while fixing others
+print("Fit some parameters while fixing others in normal conditions while giving others a different stationary value.")
+fixed_values = {
+    "Tconv_prolif": 0.15,
+    "Tconv_decay": 0.06,
+    "Mreg_decay": 0.008
+}
+mixed_params = fit_parameters(
+    "Normal", 
+    df,
+    # parameters_to_fit=["K_prolif", "K_growth", "K_suppress", "K_recruitment", "Treg_recruitment", "Tconv_suppress_base", "IL2_consumption", "IL2_production"],
+    # fixed_parameters=fixed_values,
+    output_format="dict",
+    system = "cytokine"
+)
+for key, value in mixed_params.items():
+    print(f"{key}: {value}")
+print("\n\n")
+mixed_params = list(mixed_params.values())
+plot_fit("Normal", df, mixed_params)
 
 
 sensitivity_analysis_all("Autoimmune", df, "cytokine", params_to_compare=["K_suppress", "K_prolif", "K_recruitment", "K_growth"])
