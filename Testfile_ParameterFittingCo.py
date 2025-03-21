@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 # Importing the necessary data from the file
-file_path = r"C:\Users\woutg\OneDrive\Bureaublad\synthetic_immune_data_final_split.csv"
+file_path = r"C:\Users\woutg\Documents\Universiteit\Bachelor 3\Bachelorproef\Synthetic_Immune_Data_Memory_Cytokine_Realistic.csv"
 df = pd.read_csv(file_path, delimiter=';')
 
 
@@ -18,47 +18,48 @@ all_params_og = {
     "Tconv_decay": 0.05,
     "Treg_recruitment": 0.01,
     "Treg_growth": 0.08,
-    "Treg_decay": 0.03,
+    "Treg_decay": 0.05,
     "Mreg_growth": 0.01,
-    "Mreg_decay": 0.005
+    "Mreg_decay": 0.05
 }
 initial_populations = [100.0, 10.0, 25.0, 2.0]
 timestamps=np.linspace(0, 100, 101)
 
 # Quick comparison between the two ODE-systems
-print("Now showing a comparison between the two mathematical models.")
-compare_equation_systems(["Memory", "Cytokine"], timestamps)
+# print("Now showing a comparison between the two mathematical models.")
+# compare_equation_systems(["Memory", "Cytokine"], timestamps)
 
-# Now seperated to take a look at the mechanics
-print("Now showing the dynamics of the memory model on its own (with refence parameter values).")
-compare_equation_systems(["Memory"], timestamps, plot_Cytokine=False)
-print("Now showing the dynamics of the cytokine model on its own (with refence parameter values).")
-compare_equation_systems(["Cytokine"], timestamps, plot_Mreg=False)
+# # Now seperated to take a look at the mechanics
+# print("Now showing the dynamics of the memory model on its own (with refence parameter values).")
+# compare_equation_systems(["Memory"], timestamps, plot_Cytokine=False)
+# print("Now showing the dynamics of the cytokine model on its own (with refence parameter values).")
+# compare_equation_systems(["Cytokine"], timestamps, plot_Mreg=False)
 
 # Fitting all parameters except decay rates, these are proportional to growth rates
 # Thus to look at the proper ratio rather than unnatural values, we keep these constant.
 # Comparing the parameters in the different conditions.
 param_name_list = list(all_params_og.keys())
 filtered_param_name_list = [name for name in param_name_list if not name.endswith("decay")]
+print(filtered_param_name_list)
 
-compare_conditions(["Normal", "Cancer", "Autoimmune"], df, params_to_compare=[], params_to_skip=["Treg_decay", "Tconv_decay", "Mreg_decay", "K_reg", "tau"], parameters_to_fit=filtered_param_name_list )
+# compare_conditions(["Normal", "Cancer", "Autoimmune"], df, params_to_compare=[], params_to_skip=["Treg_decay", "Tconv_decay", "Mreg_decay", "K_reg", "tau"], parameters_to_fit=filtered_param_name_list )
 
 
 
 
-# # Fit only prolif and other parameters (no decay)
-# print("Fit only prolif and other parameters (no decay)")
-# selected_params = fit_parameters(
-#     "Normal", 
-#     df,
-#     parameters_to_fit=filtered_param_name_list, 
-#     output_format="dict",
-#     system = "memory")
-# for key, value in selected_params.items():
-#     print(f"{key}: {value}")
-# print("\n\n")
-# selected_params = list(selected_params.values())
-# plot_fit("Normal", df, params=selected_params, system="memory")
+# Fit only prolif and other parameters (no decay)
+print("Fit only prolif and other parameters (no decay)")
+selected_params = fit_parameters(
+    "Normal", 
+    df,
+    parameters_to_fit=filtered_param_name_list, 
+    output_format="dict",
+    system = "memory")
+for key, value in selected_params.items():
+    print(f"{key}: {value}")
+print("\n\n")
+selected_params = list(selected_params.values())
+plot_fit("Normal", df, params=selected_params, system="memory")
 
 
 # # Fit all parameters this time decays aswell.

@@ -12,7 +12,7 @@ from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic
 param ={}
 
 
-def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None, output_format='dict', system="Memory"):
+def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, fixed_parameters=None, output_format='dict', system="Memory"):
     """
     Fit model parameters to data.
     
@@ -25,7 +25,8 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
     Returns:
         Dictionary of fitted parameter values
     """
-    
+    all_params = initial_guess
+
     time = df["Time (days)"].values
     Tconv_data = df[f"Tconv_{condition}"].values
     Treg_data = df[f"Treg_{condition}"].values
@@ -35,57 +36,57 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
         system_num = 0
         y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), np.zeros_like(Tconv_data)])
         
-        # Define all parameters and their default initial values
-        all_params = {
-            "Tconv_suppress_base": 0.02,
-            "Tconv_prolif": 0.12,
-            "Tconv_decay": 0.05,
-            "Treg_recruitment": 0.01,
-            "Treg_growth": 0.08,
-            "Treg_decay": 0.03,
-        }
+        if initial_guess == None:
+            all_params = {
+                "Tconv_suppress_base": 0.018,
+                "Tconv_prolif": 0.13,
+                "Tconv_decay": 0.05,
+                "Treg_recruitment": 0.012,
+                "Treg_growth": 0.085,
+                "Treg_decay": 0.05,
+            }
 
-    if system == "memory":
+    elif system == "memory":
         system_num = 1
         Mreg_data = df[f"Mreg_{condition}"].values
         y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), Mreg_data])
         
-        # Define all parameters and their default initial values
-        all_params = {
-            "Tconv_suppress_base": 0.02,
-            "K_reg": 500.0,
-            "tau": 5.0,
-            "Mreg_conversion_base": 0.005,
-            "Tconv_prolif": 0.12,
-            "Tconv_decay": 0.05,
-            "Treg_recruitment": 0.01,
-            "Treg_growth": 0.08,
-            "Treg_decay": 0.03,
-            "Mreg_growth": 0.01,
-            "Mreg_decay": 0.005
-        }
-        
+        if initial_guess==None:
+            all_params_mem = {
+                "Tconv_suppress_base": 0.018,
+                "K_reg": 500.0,
+                "tau": 5.0,
+                "Mreg_conversion_base": 0.05,
+                "Tconv_prolif": 0.13,
+                "Tconv_decay": 0.05,
+                "Treg_recruitment": 0.012,
+                "Treg_growth": 0.085,
+                "Treg_decay": 0.05,
+                "Mreg_growth": 0.05,
+                "Mreg_decay": 0.05
+            }
+                
     elif system == "cytokine":
         system_num = 2
         IL2_data = df[f"IL2_{condition}"].values
         y_data = np.vstack([Tconv_data, Treg_data, IL2_data, np.zeros_like(Tconv_data)])
         
-        # Define all parameters and their default initial values
-        all_params = {
-            "Tconv_suppress_base": 0.02,
-            "Tconv_prolif": 0.12,
-            "Tconv_decay": 0.05,
-            "Treg_recruitment": 0.01,
-            "Treg_growth": 0.08,
-            "Treg_decay": 0.03,
-            "K_prolif": 10.,
-            "K_suppress": 15.,
-            "K_recruitment": 12.,
-            "K_growth": 8.,
-            "IL2_production": 5.,
-            "IL2_consumption": 0.2
-        }
-
+        if initial_guess==None:
+            all_params_cyt = {
+                "Tconv_suppress_base": 0.018,
+                "Tconv_prolif": 0.13,
+                "Tconv_decay": 0.05,
+                "Treg_recruitment": 0.012,
+                "Treg_growth": 0.085,
+                "Treg_decay": 0.05,
+                "K_prolif": 10.,
+                "K_suppress": 15.,
+                "K_recruitment": 12.,
+                "K_growth": 8.,
+                "IL2_production": 5.2,
+                "IL2_consumption": 0.19
+            }
+      
     else:
         print("No valid system detected")
         exit 
@@ -159,61 +160,23 @@ def fit_parameters(condition, df, parameters_to_fit=None, fixed_parameters=None,
     else:
         raise ValueError("output_format must be either 'dict' or 'list'")
 
-def plot_fit(condition, df, params=None, system="Memory"):
+def plot_fit(condition, df, param_dict=None, system="Memory", reg_sum = False):
     time = df["Time (days)"].values
     Tconv_data = df[f"Tconv_{condition}"].values
     Treg_data = df[f"Treg_{condition}"].values
-    if params == None:
-        params = fit_parameters(condition, df, output_format="list", system=system)
+    if param_dict == None:
+        param_dict = fit_parameters(condition, df, output_format="dict", system=system)
     system = system.lower()
     
     if system == "basic":
-        # Define all parameters and their default initial values
-        param_dict = {
-            "Tconv_suppress_base": params[0],
-            "Tconv_prolif": params[1],
-            "Tconv_decay": params[2],
-            "Treg_recruitment": params[3],
-            "Treg_growth": params[4],
-            "Treg_decay": params[5],
-        }
         y0 = [Tconv_data[0], Treg_data[0], 0, 0]
 
     elif system == "memory":
         Mreg_data = df[f"Mreg_{condition}"].values
-        # Define all parameters and their default initial values
-        param_dict = {
-            "Tconv_suppress_base": params[0],
-            "K_reg": params[1],
-            "tau": params[2],
-            "Mreg_conversion_base": params[3],
-            "Tconv_prolif": params[4],
-            "Tconv_decay": params[5],
-            "Treg_recruitment": params[6],
-            "Treg_growth": params[7],
-            "Treg_decay": params[8],
-            "Mreg_growth": params[9],
-            "Mreg_decay": params[10]
-        }
         y0 = [Tconv_data[0], Treg_data[0], 0, Mreg_data[0]]
         
     elif system == "cytokine":
         IL2_data = df[f"IL2_{condition}"].values
-        # Define all parameters and their default initial values
-        param_dict = {
-            "Tconv_suppress_base": params[0],
-            "Tconv_prolif": params[1],
-            "Tconv_decay": params[2],
-            "Treg_recruitment": params[3],
-            "Treg_growth": params[4],
-            "Treg_decay": params[5],
-            "K_prolif": params[6],
-            "K_suppress": params[7],
-            "K_recruitment": params[8],
-            "K_growth": params[9],
-            "IL2_production": params[10],
-            "IL2_consumption": params[11]
-        }
         y0 = [Tconv_data[0], Treg_data[0], IL2_data[0], 0]
         
     else:

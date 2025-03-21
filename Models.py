@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def dT_dt_Basic(t, populations, param):
-    Tconv_pop, Treg_pop, _ , _ = populations
+    Tconv_pop, Treg_pop, _, _ = populations
 
     dTconv_dt = (param["Tconv_prolif"] * Tconv_pop 
                     - param["Tconv_decay"] * Tconv_pop 
@@ -18,7 +18,7 @@ def dT_dt_Basic(t, populations, param):
                     + param["Treg_recruitment"] * Tconv_pop 
                     )
     
-    return np.array([dTconv_dt, dTreg_dt])
+    return np.array([dTconv_dt, dTreg_dt, 0 ,0])
 
 def dT_dt_Advanced_memory(t, populations, param):
     # Reading out the current populations
