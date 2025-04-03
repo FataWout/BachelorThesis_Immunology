@@ -62,8 +62,6 @@ def dT_dt_Advanced_memory_mod(t, populations):
 def dT_dt_Basic_mod(t, populations):
     return dT_dt_Basic(t, populations, param)
 
-
-
 def solve_odeint(equation_system = "Memory", initial_populations = [100, 10, 25, 2], timestamps=np.linspace(0, 100, 100)):   
     """Solves given equation system for given timestamps."""
     # Check which equation system was given to use and solve using that model        
@@ -72,11 +70,11 @@ def solve_odeint(equation_system = "Memory", initial_populations = [100, 10, 25,
     elif equation_system == "Cytokine":
         return odeint(dT_dt_Advanced_cytokine_mod, initial_populations, timestamps, tfirst=True)
 
-
 def get_variable_explanation(parameter_name):
     """Returns the explanation for a given parameter."""
     # Return explanation of parameter_name when the name is an existing one.
     return parameter_descriptions.get(parameter_name, "Explanation not found.")
+
 
 # This definition will be used to make sure in future plots Treg and Tconv have the same color but for each alteration a different color.
 def get_color(value, parameter_values, cmap = cm.brg):
@@ -95,8 +93,6 @@ def get_color(value, parameter_values, cmap = cm.brg):
     normalized_value = (value - min_val) / (max_val - min_val)
     return cmap(normalized_value)
     
-
-
 def compare_variable_values(parameter_name, parameter_values, param, 
                             initial_populations, timestamps=(0, 100, 100),
                             equation_systems=["Standard"],
@@ -191,7 +187,6 @@ def compare_variable_values(parameter_name, parameter_values, param,
             
     plt.show()
    
-
 def compare_equation_systems(systems_to_compare, timestamps,
                             plot_Mreg = True, plot_Cytokine = True):
     """
@@ -245,7 +240,6 @@ def compare_equation_systems(systems_to_compare, timestamps,
     plt.tight_layout()
     plt.show()
         
-
 def stochastic_effects(equation_system, param, initial_populations, timestamps, number_of_systems=3, stochastic_vars=None,
                             plot_Mreg = True, plot_Cytokine = True):
     """
@@ -332,7 +326,6 @@ def stochastic_effects(equation_system, param, initial_populations, timestamps, 
         plt.tight_layout()
 
     plt.show()
-  
 
 def heatmap(equation_system, param, initial_populations, timestamps=np.linspace(0, 10, 100), 
             variable_names = ["Tconv_prolif", "suppress_rate_Tconv"], range_var1 = [0.05, 0.15],
@@ -398,6 +391,7 @@ def heatmap(equation_system, param, initial_populations, timestamps=np.linspace(
     plt.tight_layout()
     plt.show()
     return heat_matrix_reg
+
 
 def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory"):
     """
