@@ -12,7 +12,7 @@ from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic
 param ={}
 
 
-def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, fixed_parameters=None, output_format='dict', system="Memory"):
+def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, bounds=None, fixed_parameters=None, output_format='dict', system="memory"):
     """
     Fit model parameters to data.
     
@@ -26,12 +26,12 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, fix
         Dictionary of fitted parameter values
     """
     all_params = initial_guess
-
+    system = system.lower()
+    condition = condition.lower().capitalize()
     time = df["Time (days)"].values
     Tconv_data = df[f"Tconv_{condition}"].values
     Treg_data = df[f"Treg_{condition}"].values
 
-    system = system.lower()
     if system == "basic":
         system_num = 0
         y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), np.zeros_like(Tconv_data)])
@@ -52,7 +52,7 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, fix
         y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), Mreg_data])
         
         if initial_guess==None:
-            all_params_mem = {
+            all_params = {
                 "Tconv_suppress_base": 0.018,
                 "K_reg": 500.0,
                 "tau": 5.0,
@@ -72,7 +72,7 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, fix
         y_data = np.vstack([Tconv_data, Treg_data, IL2_data, np.zeros_like(Tconv_data)])
         
         if initial_guess==None:
-            all_params_cyt = {
+            all_params = {
                 "Tconv_suppress_base": 0.018,
                 "Tconv_prolif": 0.13,
                 "Tconv_decay": 0.05,
@@ -129,16 +129,11 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, fix
             sol_y_interp = interp_func(time)
         else:
             sol_y_interp = sol.y
-
-        squared_difference = np.sum((sol_y_interp - y_data) ** 2)
-
-        ss_total = np.sum((y_data - np.mean(y_data, axis=1, keepdims=True)) ** 2)
-        r2_score = 1 - (squared_difference / ss_total)
-
         return (sol_y_interp - y_data).ravel()
     
     # Set bounds to ensure all parameters are positive
-    bounds = (np.zeros(len(initial_guess)), np.inf * np.ones(len(initial_guess)))
+    if bounds == None:
+        bounds = (np.zeros(len(initial_guess)), np.inf * np.ones(len(initial_guess)))
     
     # Run optimization
     result = least_squares(objective, initial_guess, bounds=bounds)
@@ -329,7 +324,7 @@ def sensitivity_analysis(condition, df, parameter_name, system="Memory", variati
         "Sum_R2_Differences": r2_diff_sum
     }
 
-def sensitivity_analysis_all(condition, df, system="Memory", params_to_skip = [], params_to_compare = [], variations = [-0.25, -0.10, 0., 0.10, 0.25]):
+def sensitivity_analysis_all(condition, df, system="memory", params_to_skip = [], params_to_compare = [], variations = [-0.25, -0.10, 0., 0.10, 0.25]):
     """
     Perform sensitivity analysis on all parameters and plot the R^2 scores.
     
@@ -341,6 +336,8 @@ def sensitivity_analysis_all(condition, df, system="Memory", params_to_skip = []
     Returns:
         None (plots the results).
     """
+    system = system.lower()
+    condition = condition.lower().capitalize()
     fitted_params = fit_parameters(condition, df, output_format='dict', system=system)
     param_names = list(fitted_params.keys())
     if params_to_compare == []:

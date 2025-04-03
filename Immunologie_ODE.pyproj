@@ -23,15 +23,11 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="backup_11122024_1003.py" />
-    <Compile Include="ChosenParameterFitting - Copy.py" />
     <Compile Include="ChosenParameterFitting.py" />
     <Compile Include="Models.py" />
-    <Compile Include="ODE_systems.py" />
-    <Compile Include="PlotOverTime.py" />
+    <Compile Include="Plot_and_Compare_Methods.py" />
+    <Compile Include="Dictionary_transforms.py" />
     <Compile Include="Testfile_21_03.py" />
-    <Compile Include="Testfile_JustificationOfPlots.py" />
-    <Compile Include="Testfile_ParameterFittingCo.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|VisualStudio|env_Immunologie_ODE" />
