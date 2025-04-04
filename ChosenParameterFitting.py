@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+
 from scipy.integrate import solve_ivp
 from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
@@ -14,7 +15,7 @@ from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic, 
 param ={}
 
 
-def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, bounds=None, fixed_parameters=None, output_format='dict', system="memory"):
+def fit_parameters(condition, df, initial_guess=None, parameters_to_fit=None, bounds=None, fixed_parameters=None, output_format='dict', system="memory"):
     """
     Fit model parameters to data.
     
@@ -39,34 +40,16 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, bou
         y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), np.zeros_like(Tconv_data)])
         
         if initial_guess == None:
-            all_params = {
-                "Tconv_suppress_base": 0.018,
-                "Tconv_prolif": 0.13,
-                "Tconv_decay": 0.05,
-                "Treg_recruitment": 0.012,
-                "Treg_growth": 0.085,
-                "Treg_decay": 0.05,
-            }
-
+            all_params = compute_means(basic_params, bounds)
+        bounds_scipy = restructure_bounds(basic_params, bounds)
     elif system == "memory":
         system_num = 1
         Mreg_data = df[f"Mreg_{condition}"].values
         y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), Mreg_data])
         
         if initial_guess==None:
-            all_params = {
-                "Tconv_suppress_base": 0.018,
-                "K_reg": 500.0,
-                "tau": 5.0,
-                "Mreg_conversion_base": 0.05,
-                "Tconv_prolif": 0.13,
-                "Tconv_decay": 0.05,
-                "Treg_recruitment": 0.012,
-                "Treg_growth": 0.085,
-                "Treg_decay": 0.05,
-                "Mreg_growth": 0.05,
-                "Mreg_decay": 0.05
-            }
+            all_params = compute_means(intermediate_params, bounds)
+        bounds_scipy = restructure_bounds(intermediate_params, bounds)
                 
     elif system == "cytokine":
         system_num = 2
@@ -74,21 +57,8 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, bou
         y_data = np.vstack([Tconv_data, Treg_data, IL2_data, np.zeros_like(Tconv_data)])
         
         if initial_guess==None:
-            all_params = {
-                "Tconv_suppress_base": 0.018,
-                "Tconv_prolif": 0.13,
-                "Tconv_decay": 0.05,
-                "Treg_recruitment": 0.012,
-                "Treg_growth": 0.085,
-                "Treg_decay": 0.05,
-                "K_prolif": 10.,
-                "K_suppress": 15.,
-                "K_recruitment": 12.,
-                "K_growth": 8.,
-                "IL2_production": 5.2,
-                "IL2_consumption": 0.19
-            }
-      
+            all_params = compute_means(advanced_params, bounds)
+        bounds_scipy = restructure_bounds(advanced_params, bounds)
     else:
         print("No valid system detected")
         exit 
@@ -104,6 +74,7 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, bou
     # Create a mapping from fit parameter index to parameter name
     fit_param_names = parameters_to_fit
     
+    print(all_params)
     # Initial guess for parameters to be fitted
     initial_guess = [all_params[param] for param in fit_param_names]
     
@@ -133,12 +104,9 @@ def fit_parameters(condition, df, initial_guess=None,parameters_to_fit=None, bou
             sol_y_interp = sol.y
         return (sol_y_interp - y_data).ravel()
     
-    # Set bounds to ensure all parameters are positive
-    if bounds == None:
-        bounds = (np.zeros(len(initial_guess)), np.inf * np.ones(len(initial_guess)))
-    
+
     # Run optimization
-    result = least_squares(objective, initial_guess, bounds=bounds)
+    result = least_squares(objective, initial_guess, bounds=bounds_scipy)
     # Process the output based on the requested format
     
     # Create result dictionary with all parameters
@@ -203,25 +171,21 @@ def plot_fit(condition, df, param_dict=None, system="Memory", reg_sum = False):
     plt.legend()
     plt.show()
 
-def compare_conditions(conditions, df, params_to_compare=None, params_to_skip=None, parameters_to_fit=None, system="Memory"):
+def compare_conditions(conditions, df, bounds=bounds, params_to_compare=None, params_to_skip=None, parameters_to_fit=None, system="Memory", logplot=True):
     param_values = {}
     
     for condition in conditions:
-        params = fit_parameters(condition, df, parameters_to_fit=parameters_to_fit, system=system, output_format="list")
+        params = fit_parameters(condition, df, bounds=bounds, parameters_to_fit=parameters_to_fit, system=system, output_format="list")
         param_values[condition] = params
     systemname = system.lower()
     if systemname=="basic":
-        param_names = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay",
-                       "Treg_recruitment", "Treg_growth", "Treg_decay"]
+        param_names = basic_params
         
     elif systemname=="memory":
-        param_names = ["Tconv_suppress_base", "K_reg", "tau", "Mreg_conversion_base", "Tconv_prolif", "Tconv_decay",
-                       "Treg_recruitment", "Treg_growth", "Treg_decay", "Mreg_growth", "Mreg_decay"]
+        param_names = intermediate_params
 
     elif systemname=="cytokine":
-        param_names = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay", "Treg_recruitment", "Treg_growth",
-                       "Treg_decay", "K_prolif", "K_suppress", "K_recruitment", "K_growth", "IL2_production", 
-                       "IL2_consumption"]
+        param_names = advanced_params
         
     if params_to_compare == None or not params_to_compare:
         params_to_compare = param_names
@@ -229,8 +193,15 @@ def compare_conditions(conditions, df, params_to_compare=None, params_to_skip=No
     filtered_param_names = [param_names[i] for i in filtered_indices]
     df_params = pd.DataFrame({cond: [param_values[cond][i] for i in filtered_indices] for cond in conditions}, index=filtered_param_names)
     
-    df_params.plot(kind='bar', figsize=(12, 6))
-    plt.yscale("log")  # Set y-axis to logarithmic scale
+    ax = df_params.plot(kind='bar', figsize=(12, 6))
+    # Draw a limit line for each parameter
+    for i, param in enumerate(filtered_param_names):
+        if param in bounds:
+            limit = bounds[param]  
+            ax.hlines(y=limit[0], xmin=i - 0.4, xmax=i + 0.4, colors='red', linestyles='dashed') 
+            ax.hlines(y=limit[1], xmin=i - 0.4, xmax=i + 0.4, colors='red', linestyles='dashed') 
+    if logplot==True:
+        plt.yscale("log")  # Set y-axis to logarithmic scale
     plt.ylabel('Parameter Value')
     plt.title(f'Comparison of Fitted Parameters Across Conditions in $\mathbf{{{system}}}$ ODE-model')
     plt.legend(title="Conditions")
@@ -309,7 +280,141 @@ def sensitivity_analysis(condition, df, parameter_name, params=None, system="Mem
         "Sum_Differences": diff_sum
     }
 
-def sensitivity_analysis_all(condition, df, system="memory", params=None, params_to_skip = [], params_to_compare = [], metric='r', variations = [-0.25, -0.10, 0., 0.10, 0.25]):
+def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], t_eval=None, params=None, params_to_skip = [], params_to_compare = [], metric='r', variations = [-0.25, -0.10, 0., 0.10, 0.25]):
+    """
+    Perform sensitivity analysis on all parameters and plot the R^2 scores.
+    
+    Args:
+        condition: The condition to use for data selection.
+        df: DataFrame containing the time series data.
+        system: The system model to use ("Memory" or "Cytokine").
+        
+    Returns:
+        None (plots the results).
+    """
+    system = system.lower()
+    metric = metric.lower()
+    if t_eval is None:
+        t_eval = np.linspace(t_span[0], t_span[1], 500)  # Default time resolution
+
+    if params == None:
+        if system == "basic":
+            params = compute_means(basic_params)
+        elif system == "memory":
+            params = compute_means(intermediate_params)
+        elif system == "cytokine":
+            params = compute_means(advanced_params)
+        
+    param_names = list(params.keys())
+    if params_to_compare == []:
+        params_to_compare = param_names
+    
+    # Define ODE system with parameters
+    if system == "basic":
+        def ode_system(t, y):
+            return dT_dt_Basic(t, y, params)    
+        def ode_system_mod(t, y):
+            return dT_dt_Basic(t, y, modified_params) 
+    elif system == "memory":
+        def ode_system(t, y):
+            return dT_dt_Advanced_memory(t, y, params)
+        def ode_system_mod(t, y):
+            return dT_dt_Advanced_memory(t, y, modified_params) 
+    elif system == "cytokine":
+        def ode_system(t, y):
+            return dT_dt_Advanced_cytokine(t, y, params)     
+        def ode_system_mod(t, y):
+            return dT_dt_Advanced_cytokine(t, y, modified_params) 
+
+    # Solve ODE system
+    reference_sol = solve_ivp(ode_system, t_span, y0, t_eval=t_eval, method='RK45')
+   
+    results_vars = {}
+    for param in param_names:
+        if param in params_to_compare and param not in params_to_skip:
+            results_vars[param] = []
+            # Compute R^2 for each variation
+            for var in variations:
+                if float(var) == 0.:
+                    results_vars[param].append(1.)
+                    continue
+                
+                modified_params = copy.deepcopy(params)
+                modified_params[param] = params[param] * (1 + var)
+                
+                compare_sol = solve_ivp(ode_system_mod, t_span, y0, t_eval=t_eval, method='RK45')
+                
+                # Extract model predictions
+                Tconv_data, Tconv_model = reference_sol.y[0], compare_sol.y[0]
+                Treg_data, Treg_model = reference_sol.y[1], compare_sol.y[1]
+                IL2_data, IL2_model = reference_sol.y[2], compare_sol.y[2]
+                Mreg_data, Mreg_model = reference_sol.y[3], compare_sol.y[3]
+                # Compute chosen metric
+                # Compute metrics
+                results = {}
+
+                if metric.lower() in ["mse"]:
+                    results["MSE_Tconv"] = np.mean((Tconv_model - Tconv_data) ** 2)
+                    results["MSE_Treg"] = np.mean((Treg_model - Treg_data) ** 2)
+                    if system == "cytokine":
+                        results["MSE_IL2"] = np.mean((IL2_model - IL2_data) ** 2)
+                    if system == "memory":
+                        results["MSE_Mreg"] = np.mean((Mreg_model - Mreg_data) ** 2)
+    
+                if metric.lower() in ["r"]:
+                    results["r_Tconv"], _ = pearsonr(Tconv_model, Tconv_data)
+                    results["r_Treg"], _ = pearsonr(Treg_model, Treg_data)
+                    if system == "cytokine":
+                        results["r_IL2"], _ = pearsonr(IL2_model, IL2_data)
+                    if system == "memory":
+                        results["r_Mreg"], _ = pearsonr(Mreg_model, Mreg_data)
+
+                if metric.lower() in ["r2"]:
+                    ss_tot_Tconv = np.sum((Tconv_data - np.mean(Tconv_data)) ** 2)
+                    ss_res_Tconv = np.sum((Tconv_data - Tconv_model) ** 2)
+                    results["R2_Tconv"] = max(0., 1 - (ss_res_Tconv / ss_tot_Tconv))
+        
+                    ss_tot_Treg = np.sum((Treg_data - np.mean(Treg_data)) ** 2)
+                    ss_res_Treg = np.sum((Treg_data - Treg_model) ** 2)
+                    results["R2_Treg"] = max(0., 1 - (ss_res_Treg / ss_tot_Treg))
+        
+                    if system == "cytokine":
+                        ss_tot_IL2 = np.sum((IL2_data - np.mean(IL2_data)) ** 2)
+                        ss_res_IL2 = np.sum((IL2_data - IL2_model) ** 2)
+                        results["R2_IL2"] = max(0., 1 - (ss_res_IL2 / ss_tot_IL2))
+                    if system == "memory":
+                        print(np.mean(Mreg_data))
+                        ss_tot_Mreg = np.sum((Mreg_data - np.mean(Mreg_data)) ** 2)
+                        ss_res_Mreg = np.sum((Mreg_data - Mreg_model) ** 2)
+                        results["R2_Mreg"] = max(0., 1 - (ss_res_Mreg / ss_tot_Mreg))
+    
+                if metric.lower() not in ["mse", "r", "r2"]:
+                    raise ValueError("Invalid metric chosen. Choose 'mse', 'r', or 'r2'.")
+                
+                metric_score = np.mean(list(results.values()))
+                results_vars[param].append(metric_score)
+                print(list(results.values()))
+                print(f"{param} = {modified_params[param]:.4e} ({(1+var)*100:.0f}%) ; {metric.capitalize()} Score = {metric_score}")
+                
+    # Plot results
+    variations_labels = [f"{var * 100:.1f}%" for var in variations]
+    plt.figure(figsize=(12, 6))
+    for param, values in results_vars.items():
+        plt.plot(variations_labels, values, marker='o', markersize=2, label=f"{param} ({params[param]:.2e})")
+    
+    plt.xlabel("Parameter Variation")
+    plt.ylabel(f"{metric.capitalize()} Score")
+    plt.title(f"Sensitivity Analysis for All Parameters ({system.capitalize()} System)")
+    plt.legend(loc='best', bbox_to_anchor=(1, 1))
+    xtick_positions = np.linspace(0, len(variations) - 1, 6, dtype=int)
+    xtick_labels = [variations_labels[i] for i in xtick_positions]
+    plt.xticks(ticks=xtick_positions, labels=xtick_labels, rotation=45)
+    plt.grid(True)
+    plt.show()
+    
+
+
+def sensitivity_analysis_all_data(condition, df, system="memory", params=None, params_to_skip = [], params_to_compare = [], metric='r', variations = [-0.25, -0.10, 0., 0.10, 0.25]):
     """
     Perform sensitivity analysis on all parameters and plot the R^2 scores.
     
@@ -351,16 +456,18 @@ def sensitivity_analysis_all(condition, df, system="memory", params=None, params
             results[param]["metric_tot_diff"] = df_results["Sum_Differences"]
     
     # Plot results
-    variations = [str(var * 100) + "%" for var in variations]
+    variations_labels = [f"{var * 100:.1f}%" for var in variations]
     plt.figure(figsize=(12, 6))
     for param, values in results.items():
-        plt.plot(variations, values["Scores"], marker='o', label=f"{param} ({values['metric_tot_diff']:.4e})")
+        plt.plot(variations_labels, values["Scores"], marker='o', markersize=2, label=f"{param} ({params[param]:.2e})")
     
     plt.xlabel("Parameter Variation")
     plt.ylabel(f"{metric.capitalize()} Score")
-    plt.title(f"Sensitivity Analysis for All Parameters ({system} System)")
+    plt.title(f"Sensitivity Analysis for All Parameters ({system.capitalize()} System)")
     plt.legend(loc='best', bbox_to_anchor=(1, 1))
-    plt.xticks(rotation=45)
+    xtick_positions = np.linspace(0, len(variations) - 1, 6, dtype=int)
+    xtick_labels = [variations_labels[i] for i in xtick_positions]
+    plt.xticks(ticks=xtick_positions, labels=xtick_labels, rotation=45)
     plt.grid(True)
     plt.show()
     
