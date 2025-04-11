@@ -1,4 +1,4 @@
-
+﻿
 ### This script is where all functions to fit are written
 
 import numpy as np
@@ -15,7 +15,7 @@ from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic, 
 param ={}
 
 
-def fit_parameters(condition, df, initial_guess=None, parameters_to_fit=None, bounds=None, fixed_parameters=None, output_format='dict', system="memory"):
+def fit_parameters(condition, df, initial_guess=None, parameters_to_fit=None, bounds_dict=None, fixed_parameters=None, output_format='dict', system="memory"):
     """
     Fit model parameters to data.
     
@@ -34,6 +34,8 @@ def fit_parameters(condition, df, initial_guess=None, parameters_to_fit=None, bo
     time = df["Time (days)"].values
     Tconv_data = df[f"Tconv_{condition}"].values
     Treg_data = df[f"Treg_{condition}"].values
+    if bounds_dict==None:
+        bounds_dict = bounds
 
     if system == "basic":
         system_num = 0
@@ -74,7 +76,6 @@ def fit_parameters(condition, df, initial_guess=None, parameters_to_fit=None, bo
     # Create a mapping from fit parameter index to parameter name
     fit_param_names = parameters_to_fit
     
-    print(all_params)
     # Initial guess for parameters to be fitted
     initial_guess = [all_params[param] for param in fit_param_names]
     
@@ -166,8 +167,8 @@ def plot_fit(condition, df, param_dict=None, system="Memory", reg_sum = False):
         plt.plot(time, sol.y[1], 'g-', label='Treg Model')
 
     plt.xlabel('Time (days)')
-    plt.ylabel('Cell Population')
-    plt.title(f'Fit of $\mathbf{{{system}}}$ ODE Model to $\mathbf{{{condition}}}$ condition Data')
+    plt.ylabel('Concentration (Units/L)')
+    plt.title(f'Fit of $\mathbf{{{system.capitalize()}}}$ ODE Model to $\mathbf{{{condition.capitalize()}}}$ Condition Data')
     plt.legend()
     plt.show()
 
@@ -175,7 +176,7 @@ def compare_conditions(conditions, df, bounds=bounds, params_to_compare=None, pa
     param_values = {}
     
     for condition in conditions:
-        params = fit_parameters(condition, df, bounds=bounds, parameters_to_fit=parameters_to_fit, system=system, output_format="list")
+        params = fit_parameters(condition, df, bounds_dict=bounds, parameters_to_fit=parameters_to_fit, system=system, output_format="list")
         param_values[condition] = params
     systemname = system.lower()
     if systemname=="basic":
@@ -280,7 +281,7 @@ def sensitivity_analysis(condition, df, parameter_name, params=None, system="Mem
         "Sum_Differences": diff_sum
     }
 
-def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], t_eval=None, params=None, params_to_skip = [], params_to_compare = [], metric='r', variations = [-0.25, -0.10, 0., 0.10, 0.25]):
+def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], t_eval=None, params=None, params_to_skip = [], params_to_compare = [], metric='r', variations = [-0.25, -0.10, 0., 0.10, 0.25], show_plot=True):
     """
     Perform sensitivity analysis on all parameters and plot the R^2 scores.
     
@@ -393,28 +394,27 @@ def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], 
                 
                 metric_score = np.mean(list(results.values()))
                 results_vars[param].append(metric_score)
-                print(list(results.values()))
                 print(f"{param} = {modified_params[param]:.4e} ({(1+var)*100:.0f}%) ; {metric.capitalize()} Score = {metric_score}")
                 
     # Plot results
     variations_labels = [f"{var * 100:.1f}%" for var in variations]
-    plt.figure(figsize=(12, 6))
-    for param, values in results_vars.items():
-        plt.plot(variations_labels, values, marker='o', markersize=2, label=f"{param} ({params[param]:.2e})")
+    if show_plot == True:
+        plt.figure(figsize=(12, 6))
+        for param, values in results_vars.items():
+            plt.plot(variations_labels, values, marker='o', markersize=2, label=f"{param} ({params[param]:.2e})")
     
-    plt.xlabel("Parameter Variation")
-    plt.ylabel(f"{metric.capitalize()} Score")
-    plt.title(f"Sensitivity Analysis for All Parameters ({system.capitalize()} System)")
-    plt.legend(loc='best', bbox_to_anchor=(1, 1))
-    xtick_positions = np.linspace(0, len(variations) - 1, 6, dtype=int)
-    xtick_labels = [variations_labels[i] for i in xtick_positions]
-    plt.xticks(ticks=xtick_positions, labels=xtick_labels, rotation=45)
-    plt.grid(True)
-    plt.show()
-    
+        plt.xlabel("Parameter Variation")
+        plt.ylabel(f"{metric.capitalize()} Score")
+        plt.title(f"Sensitivity Analysis for All Parameters ({system.capitalize()} System)")
+        plt.legend(loc='best', bbox_to_anchor=(1, 1))
+        xtick_positions = np.linspace(0, len(variations) - 1, 6, dtype=int)
+        xtick_labels = [variations_labels[i] for i in xtick_positions]
+        plt.xticks(ticks=xtick_positions, labels=xtick_labels, rotation=45)
+        plt.grid(True)
+        plt.show()
+    return results_vars
 
-
-def sensitivity_analysis_all_data(condition, df, system="memory", params=None, params_to_skip = [], params_to_compare = [], metric='r', variations = [-0.25, -0.10, 0., 0.10, 0.25]):
+def sensitivity_analysis_all_data(condition, df, system="memory", params=None, bounds=None, params_to_skip = [], params_to_compare = [], metric='r', variations = [-0.25, -0.10, 0., 0.10, 0.25], show_plot=True):
     """
     Perform sensitivity analysis on all parameters and plot the R^2 scores.
     
@@ -433,14 +433,11 @@ def sensitivity_analysis_all_data(condition, df, system="memory", params=None, p
     if params == None:
         if system == "basic":
             all_params = compute_means(basic_params)
-            bounds_scipy = restructure_bounds(basic_params)
         elif system == "memory":
             all_params = compute_means(intermediate_params)
-            bounds_scipy = restructure_bounds(intermediate_params)
         elif system == "cytokine":
             all_params = compute_means(advanced_params)
-            bounds_scipy = restructure_bounds(advanced_params)
-        params = fit_parameters(condition, df, all_params, bounds=bounds_scipy ,output_format='dict', system=system)
+        params = fit_parameters(condition, df, all_params, bounds_dict=bounds, output_format='dict', system=system)
         
     param_names = list(params.keys())
     if params_to_compare == []:
@@ -452,25 +449,108 @@ def sensitivity_analysis_all_data(condition, df, system="memory", params=None, p
             results[param] = {}
             df_results = sensitivity_analysis(condition, df, param, params=params, system=system, metric=metric, variations=variations)
             score_values = [max(score, 0) for score in df_results["Results"]["Score"].values]
-            results[param]["Scores"] = score_values
-            results[param]["metric_tot_diff"] = df_results["Sum_Differences"]
+            results[param] = score_values
+
     
     # Plot results
     variations_labels = [f"{var * 100:.1f}%" for var in variations]
-    plt.figure(figsize=(12, 6))
-    for param, values in results.items():
-        plt.plot(variations_labels, values["Scores"], marker='o', markersize=2, label=f"{param} ({params[param]:.2e})")
+    if show_plot==True:
+        plt.figure(figsize=(12, 6))
+        for param, values in results.items():
+            plt.plot(variations_labels, values, marker='o', markersize=2, label=f"{param} ({params[param]:.2e})")
     
-    plt.xlabel("Parameter Variation")
-    plt.ylabel(f"{metric.capitalize()} Score")
-    plt.title(f"Sensitivity Analysis for All Parameters ({system.capitalize()} System)")
-    plt.legend(loc='best', bbox_to_anchor=(1, 1))
-    xtick_positions = np.linspace(0, len(variations) - 1, 6, dtype=int)
-    xtick_labels = [variations_labels[i] for i in xtick_positions]
-    plt.xticks(ticks=xtick_positions, labels=xtick_labels, rotation=45)
-    plt.grid(True)
+        plt.xlabel("Parameter Variation")
+        plt.ylabel(f"{metric.capitalize()} Score")
+        plt.title(f"Sensitivity Analysis for All Parameters ({system.capitalize()} System)")
+        plt.legend(loc='best', bbox_to_anchor=(1, 1))
+        xtick_positions = np.linspace(0, len(variations) - 1, 6, dtype=int)
+        xtick_labels = [variations_labels[i] for i in xtick_positions]
+        plt.xticks(ticks=xtick_positions, labels=xtick_labels, rotation=45)
+        plt.grid(True)
+        plt.show()
+    return results
+    
+def tornado_plot_sensitivity(condition, system="memory", params=None, params_to_skip=[], params_to_compare=[], metric='r', df=None, variation=0.075):
+    """
+    Generate a symmetric tornado plot showing effect of +/-20% parameter variation on the metric.
+    Bars extend left (for -20%) and right (for +20%) from a zero baseline.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    system = system.lower()
+    metric = metric.lower()
+    condition = condition.lower().capitalize()
+
+    if params is None:
+        if system == "basic":
+            all_params = compute_means(basic_params)
+        elif system == "memory":
+            all_params = compute_means(intermediate_params)
+        elif system == "cytokine":
+            all_params = compute_means(advanced_params)
+        if df is not None:
+            all_params = fit_parameters(condition, df, all_params, output_format='dict', system=system)
+    else:
+        all_params = params
+
+    param_names = list(all_params.keys())
+    if not params_to_compare:
+        params_to_compare = param_names
+
+    variations = [-variation, 0.0, variation]
+
+    labels = []
+    results = []
+    if df is not None:
+        sens_results = sensitivity_analysis_all_data(condition, df, system, all_params, params_to_compare=param_names, metric=metric, variations=variations, show_plot=False)
+        print(sens_results)
+    else:
+        sens_results = sensitivity_analysis_all(system, params_to_compare=param_names, metric=metric, variations=variations, show_plot=False)
+
+    for param in param_names:
+        if param in params_to_compare and param not in params_to_skip:
+            scores = [max(score, 0) for score in sens_results[param]]
+            base_score = scores[1]
+            neg_diff = scores[0] - base_score
+            pos_diff = scores[2] - base_score
+
+            # Store diffs as signed values to plot: left = -20%, right = +20%
+            results.append((neg_diff, pos_diff))    
+            labels.append(f"{param}")
+
+    # Sort by total absolute impact
+    total_impacts = [abs(neg) + abs(pos) for neg, pos in results]
+    sorted_indices = np.argsort(total_impacts)
+    sorted_labels = [labels[i] for i in sorted_indices]
+    sorted_results = [results[i] for i in sorted_indices]
+
+    # Plot
+    plt.figure(figsize=(10, len(sorted_labels) * 0.4))
+    if metric != "mse":
+        plt.gca().invert_xaxis()
+    for i, (neg_diff, pos_diff) in enumerate(sorted_results):
+        if abs(pos_diff) >= abs(neg_diff):
+            plt.barh(i, width=pos_diff, left=0, color='skyblue', edgecolor='black', zorder=1, label=f'+{variation*100}%' if i == 0 else "")
+            plt.barh(i, width=neg_diff, left=0, color='salmon', edgecolor='black', zorder=2, label=f'-{variation*100}%' if i == 0 else "")
+        else:
+            plt.barh(i, width=neg_diff, left=0, color='salmon', edgecolor='black', zorder=1, label=f'-{variation*100}%' if i == 0 else "")
+            plt.barh(i, width=pos_diff, left=0, color='skyblue', edgecolor='black', zorder=2, label=f'+{variation*100}%' if i == 0 else "")
+
+    
+    plt.yticks(range(len(sorted_labels)), sorted_labels)
+    plt.xlabel(f"Δ{metric.upper()} Score")
+    if df is not None:
+       plt.title(
+                rf"$\mathbf{{\Delta {metric.upper()} \ Sensitivity\ Ranking}}$: {system.capitalize()} System in {condition.capitalize()} Conditions")
+
+    else:
+        plt.title(f"Δ{metric.upper()} Sensitivity Ranking ({system.capitalize()} System)")
+    plt.grid(axis='x', linestyle='--', alpha=0.7)
+    plt.legend(loc='lower right')
+    plt.tight_layout()
     plt.show()
-    
+
 def model_accuracy(condition, df, param_dict=None, system="Memory", metric ="r", intergration_method="RK45"):
     system = system.lower()
     

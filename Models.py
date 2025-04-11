@@ -21,7 +21,7 @@ bounds = {
     "Treg_recruitment":     [0.012, 0.021], # 0.012-0.021
     "Treg_growth":          [0.001, 0.1],   # 
     "Treg_decay":           [0.03, 0.03],   # 0.03
-    "Mreg_growth":          [0.01, 0.04],   # Almost stable with decay
+    "Mreg_growth":          [0.015, 0.025],   # Almost stable with decay
     "Mreg_decay":           [0.02, 0.02],   #
     "Mreg_conversion_base": [0.01, 0.01],   # 0.01
     "K_reg":                [1., 1000.0],   #          
