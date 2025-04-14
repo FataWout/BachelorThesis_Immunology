@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>1be618d2-9d8b-4639-aaa1-d5c76da491a9</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Testfile.py</StartupFile>
+    <StartupFile>Testfile_sens.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -27,7 +27,8 @@
     <Compile Include="Models.py" />
     <Compile Include="Plot_and_Compare_Methods.py" />
     <Compile Include="Dictionary_transforms.py" />
-    <Compile Include="Testfile.py" />
+    <Compile Include="Testfile_predictions.py" />
+    <Compile Include="Testfile_sens.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|VisualStudio|env_Immunologie_ODE" />

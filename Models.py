@@ -7,7 +7,7 @@ basic_params = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay",
 intermediate_params = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay",
                        "Treg_recruitment", "Treg_growth", "Treg_decay", 
                        "Mreg_growth", "Mreg_decay", "Mreg_conversion_base",
-                       "K_reg", "tau"]
+                       "tau"]
 
 advanced_params = ["Tconv_suppress_base", "Tconv_prolif", "Tconv_decay",
                    "Treg_recruitment", "Treg_growth", "Treg_decay", 
@@ -19,12 +19,11 @@ bounds = {
     "Tconv_prolif":         [0.01, 0.30],   # 0.13-0.20        
     "Tconv_decay":          [0.05, 0.05],   # 0.05      
     "Treg_recruitment":     [0.012, 0.021], # 0.012-0.021
-    "Treg_growth":          [0.001, 0.1],   # 
+    "Treg_growth":          [0.02, 0.06],   # 
     "Treg_decay":           [0.03, 0.03],   # 0.03
     "Mreg_growth":          [0.015, 0.025],   # Almost stable with decay
     "Mreg_decay":           [0.02, 0.02],   #
-    "Mreg_conversion_base": [0.01, 0.01],   # 0.01
-    "K_reg":                [1., 1000.0],   #          
+    "Mreg_conversion_base": [0.01, 0.01],   # 0.01       
     "tau":                  [5.0, 5.0],     # 5.0
     "K_prolif":             [1., 40.],      # 10-30
     "K_suppress":           [1., 40.],      # 10-30
@@ -37,7 +36,7 @@ bounds = {
 
 def dT_dt_Basic(t, populations, param):
     Tconv_pop, Treg_pop, _, _ = populations
-
+    
     dTconv_dt = (param["Tconv_prolif"] * Tconv_pop 
                     - param["Tconv_decay"] * Tconv_pop 
                     - param["Tconv_suppress_base"] * Tconv_pop * Treg_pop 
@@ -46,7 +45,7 @@ def dT_dt_Basic(t, populations, param):
     
     dTreg_dt = (param["Treg_growth"] * Treg_pop 
                     - param["Treg_decay"] * Treg_pop 
-                    + param["Treg_recruitment"] * Tconv_pop 
+                    + param["Treg_recruitment"] * Tconv_pop
                     )
     
     return np.array([dTconv_dt, dTreg_dt, 0 ,0])
@@ -57,10 +56,9 @@ def dT_dt_Advanced_memory(t, populations, param):
     Tconv_pop, Treg_pop, _ , Mreg_pop = populations
     # Population dependent parameters:
     suppress_rate_Tconv = (param["Tconv_suppress_base"] 
-                            * (1 - Treg_pop / (Treg_pop + param["K_reg"]))
                             * (1 - np.e**(-t/param["tau"]))
                             )
-    conversion_rate_Mreg = param["Mreg_conversion_base"] * (1 - np.e**(-t/param["tau"]))
+    conversion_rate_Mreg = param["Mreg_conversion_base"]
     
 
     dTconv_dt = (param["Tconv_prolif"] * Tconv_pop 

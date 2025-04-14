@@ -396,6 +396,7 @@ def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], 
                 results_vars[param].append(metric_score)
                 print(f"{param} = {modified_params[param]:.4e} ({(1+var)*100:.0f}%) ; {metric.capitalize()} Score = {metric_score}")
                 
+                
     # Plot results
     variations_labels = [f"{var * 100:.1f}%" for var in variations]
     if show_plot == True:
@@ -454,7 +455,7 @@ def sensitivity_analysis_all_data(condition, df, system="memory", params=None, b
     
     # Plot results
     variations_labels = [f"{var * 100:.1f}%" for var in variations]
-    if show_plot==True:
+    if show_plot:
         plt.figure(figsize=(12, 6))
         for param, values in results.items():
             plt.plot(variations_labels, values, marker='o', markersize=2, label=f"{param} ({params[param]:.2e})")
@@ -504,7 +505,6 @@ def tornado_plot_sensitivity(condition, system="memory", params=None, params_to_
     results = []
     if df is not None:
         sens_results = sensitivity_analysis_all_data(condition, df, system, all_params, params_to_compare=param_names, metric=metric, variations=variations, show_plot=False)
-        print(sens_results)
     else:
         sens_results = sensitivity_analysis_all(system, params_to_compare=param_names, metric=metric, variations=variations, show_plot=False)
 
@@ -516,8 +516,11 @@ def tornado_plot_sensitivity(condition, system="memory", params=None, params_to_
             pos_diff = scores[2] - base_score
 
             # Store diffs as signed values to plot: left = -20%, right = +20%
-            results.append((neg_diff, pos_diff))    
-            labels.append(f"{param}")
+            results.append((neg_diff, pos_diff))
+            if df is not None:
+                labels.append(f"{param} ({all_params[param]:.4e})")
+            else: 
+                labels.append(f"{param}")
 
     # Sort by total absolute impact
     total_impacts = [abs(neg) + abs(pos) for neg, pos in results]

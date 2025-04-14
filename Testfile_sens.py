@@ -31,7 +31,7 @@ conditions = ["Normal","Autoimmune", "Cancer"]
 weights = {'R2': 0.5, 'r': 0.5, 'MSE': 0.}
 
 
-# # # Basic Model:
+# # Basic Model:
 # for condition in conditions:
 #     # Fitting parameters
 #     selected_params = fit_parameters(
@@ -86,7 +86,7 @@ weights = {'R2': 0.5, 'r': 0.5, 'MSE': 0.}
 #     print("\n\n")
 #     plot_fit(condition, df, param_dict=selected_params, system="memory")
 
-# # Cytokine Model:
+# Cytokine Model:
 # for condition in conditions:
 #     # Fitting parameters
 #     selected_params = fit_parameters(
@@ -117,36 +117,35 @@ weights = {'R2': 0.5, 'r': 0.5, 'MSE': 0.}
 # #########################################
 # #--- Parameter sensitivity of system ---#
 # #########################################
-variations = np.arange(-0.050, 0.051, 0.01)
+variations = np.arange(-0.150, 0.151, 0.005)
 variations[np.isclose(variations, 0)] = 0.0
 variations = variations.tolist()
 
 # # Analysis based on parameters we give it, so the 100% will give rate 1, and other modified parameters will differ. 
-# sensitivity_analysis_all("cytokine", metric="r2", variations=variations)
-# tornado_plot_sensitivity("Normal", "basic", params_to_compare=all_params_bas, metric="r2")
+# # sensitivity_analysis_all("cytokine", metric="r2", variations=variations)
+tornado_plot_sensitivity("Normal", "basic", params_to_compare=all_params_bas, metric="r2")
 
 # sensitivity_analysis_all("memory", metric="r2", variations=variations)
-# tornado_plot_sensitivity("Normal", "memory", params_to_compare=all_params_mem, metric="r2")
+tornado_plot_sensitivity("Normal", "memory", params_to_compare=all_params_mem, metric="r2")
 
-# sensitivity_analysis_all("cytokine", metric="r2", variations=variations)
-# tornado_plot_sensitivity("Normal", "cytokine", params_to_compare=all_params_cyt, metric="r2")
+# # sensitivity_analysis_all("cytokine", metric="r2", variations=variations)
+tornado_plot_sensitivity("Normal", "cytokine", params_to_compare=all_params_cyt, metric="r2")
 
 
 # Analysis based on data we give it, so the 100% will possibly give lower values because of boundaries set for parameters. 
 # sensitivity_analysis_all_data("Normal", df, "basic", params_to_compare=all_params_bas, metric="r2", variations=variations)
-
-# tornado_plot_sensitivity("Normal", "basic", params_to_compare=all_params_bas, metric="r2", df=df, variation=0.05)
-# tornado_plot_sensitivity("Cancer", "basic", params_to_compare=all_params_bas, metric="r2", df=df, variation=0.05)
-# tornado_plot_sensitivity("Autoimmune", "basic", params_to_compare=all_params_bas, metric="r2", df=df, variation=0.05)
+# tornado_plot_sensitivity("Normal", "basic", params_to_compare=all_params_bas, metric="r2", df=df, variation=0.001)
+# tornado_plot_sensitivity("Cancer", "basic", params_to_compare=all_params_bas, metric="r2", df=df, variation=0.001)
+# tornado_plot_sensitivity("Autoimmune", "basic", params_to_compare=all_params_bas, metric="r2", df=df, variation=0.001)
 
 # sensitivity_analysis_all_data("Normal", df, "memory", params_to_compare=all_params_mem, metric="r2", variations=variations)
-# tornado_plot_sensitivity("Normal", "memory", params_to_compare=all_params_mem, metric="r2", df=df, variation=0.05)
-# tornado_plot_sensitivity("Cancer", "memory", params_to_compare=all_params_mem, metric="r2", df=df, variation=0.05)
-# tornado_plot_sensitivity("Autoimmune", "memory", params_to_compare=all_params_mem, metric="r2", df=df, variation=0.05)
+tornado_plot_sensitivity("Normal", "memory", params_to_compare=all_params_mem, metric="r2", df=df, variation=0.01)
+tornado_plot_sensitivity("Cancer", "memory", params_to_compare=all_params_mem, metric="r2", df=df, variation=0.01)
+tornado_plot_sensitivity("Autoimmune", "memory", params_to_compare=all_params_mem, metric="r2", df=df, variation=0.01)
 
-sensitivity_analysis_all_data("Normal", df, "cytokine", params_to_compare=all_params_cyt, metric="r2", variations=variations)
-tornado_plot_sensitivity("Normal", "cytokine", params_to_compare=all_params_cyt, metric="r2", df=df, variation=0.05)
-tornado_plot_sensitivity("Cancer", "cytokine", params_to_compare=all_params_cyt, metric="r2", df=df, variation=0.05)
-tornado_plot_sensitivity("Autoimmune", "cytokine", params_to_compare=all_params_cyt, metric="r2", df=df, variation=0.05)
-# Analysis based on data we give it, so the 100% will possibly give lower values because of boundaries set for parameters. 
+# sensitivity_analysis_all_data("Normal", df, "cytokine", params_to_compare=all_params_cyt, metric="r2", variations=variations)
+# tornado_plot_sensitivity("Normal", "cytokine", params_to_compare=all_params_cyt, metric="r2", df=df, variation=0.01)
+# tornado_plot_sensitivity("Cancer", "cytokine", params_to_compare=all_params_cyt, metric="r2", df=df, variation=0.01)
+# tornado_plot_sensitivity("Autoimmune", "cytokine", params_to_compare=all_params_cyt, metric="r2", df=df, variation=0.01)
+
 

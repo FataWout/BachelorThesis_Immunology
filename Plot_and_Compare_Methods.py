@@ -393,7 +393,7 @@ def heatmap(equation_system, param, initial_populations, timestamps=np.linspace(
     return heat_matrix_reg
 
 
-def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory"):
+def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory", plot_all = True):
     """
     Solves the ODE system and plots population dynamics.
 
@@ -426,11 +426,17 @@ def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory"):
     # Plotting
     plt.figure(figsize=(10, 6))
     plt.plot(sol.t, sol.y[0], label='Tconv Population', color='tab:blue')
-    plt.plot(sol.t, sol.y[1], label='Treg Population', color='tab:orange')
+    
     if system == "memory":
-        plt.plot(sol.t, sol.y[3], label='Mreg Population', color='tab:green')
+        if plot_all==True:
+            plt.plot(sol.t, sol.y[1], label='Treg Population', color='tab:orange')
+            plt.plot(sol.t, sol.y[3], label='Mreg Population', color='tab:green')
+        else: 
+            plt.plot(sol.t, sol.y[1]+sol.y[3], label='Treg Population', color='tab:orange')
     elif system == "cytokine":
-        plt.plot(sol.t, sol.y[2], label='IL-2 Concentration', color='tab:green')
+        plt.plot(sol.t, sol.y[1], label='Treg Population', color='tab:orange')
+        if plot_all==True:
+            plt.plot(sol.t, sol.y[2], label='IL-2 Concentration', color='tab:green')
     
     plt.xlabel('Time')
     plt.ylabel('Population / Concentration')
