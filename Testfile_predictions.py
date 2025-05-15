@@ -24,7 +24,7 @@ bounds_scipy_mem = restructure_bounds(intermediate_params, bounds)
 bounds_scipy_cyt = restructure_bounds(advanced_params, bounds)
 
 # Define pre-peak initial conditions (modify these if you have better biological estimates)
-# [Tconv, Treg, IL2, Mreg]
+# [Tconv, Treg, IL2, Tmreg]
 y0_pre_peak = [1, 0, 100.0, 0.0]  
 conditions = ["Normal","Autoimmune", "Cancer"]
 
@@ -34,51 +34,51 @@ t_span = (0, 200)
 t_eval = np.linspace(t_span[0], t_span[1], 500)
 
 # Loop over conditions, fit parameters and simulate
-# for condition in conditions:
-#     print(f"Running simulation for: {condition}")
+for condition in conditions:
+    print(f"Running simulation for: {condition}")
 
-#     # Fit parameters for current condition
-#     selected_params = fit_parameters(
-#         condition, 
-#         df,
-#         all_params_bas,
-#         bounds_dict=bounds,
-#         parameters_to_fit=basic_params, 
-#         output_format="dict",
-#         system="basic"
-#     )
+    # Fit parameters for current condition
+    selected_params = fit_parameters(
+        condition, 
+        df,
+        all_params_bas,
+        bounds_dict=bounds,
+        parameters_to_fit=basic_params, 
+        output_format="dict",
+        system="basic"
+    )
 
-#     # Solve and plot dynamics using the fitted parameters and initial conditions
-#     sol = solve_and_plot_system(
-#         selected_params, 
-#         y0=y0_pre_peak, 
-#         t_span=t_span, 
-#         t_eval=t_eval, 
-#         system="basic"
-#     )
+    # Solve and plot dynamics using the fitted parameters and initial conditions
+    sol = solve_and_plot_system(
+        selected_params, 
+        y0=y0_pre_peak, 
+        t_span=t_span, 
+        t_eval=t_eval, 
+        system="basic"
+    )
     
-# for condition in conditions:
-#     print(f"Running simulation for: {condition}")
+for condition in conditions:
+    print(f"Running simulation for: {condition}")
 
-#     # Fit parameters for current condition
-#     selected_params = fit_parameters(
-#         condition, 
-#         df,
-#         all_params_mem,
-#         bounds_dict=bounds,
-#         parameters_to_fit=intermediate_params, 
-#         output_format="dict",
-#         system="memory"
-#     )
+    # Fit parameters for current condition
+    selected_params = fit_parameters(
+        condition, 
+        df,
+        all_params_mem,
+        bounds_dict=bounds,
+        parameters_to_fit=intermediate_params, 
+        output_format="dict",
+        system="memory"
+    )
 
-#     # Solve and plot dynamics using the fitted parameters and initial conditions
-#     sol = solve_and_plot_system(
-#         selected_params, 
-#         y0=y0_pre_peak, 
-#         t_span=t_span, 
-#         t_eval=t_eval, 
-#         system="memory"
-#     )
+    # Solve and plot dynamics using the fitted parameters and initial conditions
+    sol = solve_and_plot_system(
+        selected_params, 
+        y0=y0_pre_peak, 
+        t_span=t_span, 
+        t_eval=t_eval, 
+        system="memory"
+    )
 
 for condition in conditions:
     print(f"Running simulation for: {condition}")

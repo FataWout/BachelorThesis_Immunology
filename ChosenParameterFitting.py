@@ -10,8 +10,8 @@ from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import copy
 from scipy.stats import pearsonr
-from Dictionary_transforms import restructure_bounds, compute_means
-from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic, basic_params, intermediate_params, advanced_params, bounds
+from Dictionary_transforms import restructure_bounds, compute_means, round_sig
+from Models import dT_dt_Advanced_cytokine, dT_dt_Advanced_memory, dT_dt_Basic, basic_params, intermediate_params, advanced_params, bounds, latex_symbols
 param ={}
 
 
@@ -46,8 +46,8 @@ def fit_parameters(condition, df, initial_guess=None, parameters_to_fit=None, bo
         bounds_scipy = restructure_bounds(basic_params, bounds)
     elif system == "memory":
         system_num = 1
-        Mreg_data = df[f"Mreg_{condition}"].values
-        y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), Mreg_data])
+        Tmreg_data = df[f"Mreg_{condition}"].values
+        y_data = np.vstack([Tconv_data, Treg_data, np.zeros_like(Tconv_data), Tmreg_data])
         
         if initial_guess==None:
             all_params = compute_means(intermediate_params, bounds)
@@ -126,51 +126,91 @@ def fit_parameters(condition, df, initial_guess=None, parameters_to_fit=None, bo
     else:
         raise ValueError("output_format must be either 'dict' or 'list'")
 
-def plot_fit(condition, df, param_dict=None, system="Memory", reg_sum = False):
-    system = system.lower()   
+def plot_fit(condition, df, param_dict=None, system="Memory", reg_sum=False, color_dict=None):
+    # Default colors if user does not provide any
+    default_colors = {
+        "Tconv": "#1f77b4",  # blue
+        "Treg": "#ff7f0e",   # orange
+        "Tmreg": "#2ca02c",  # green
+        "IL2": "#d62728"     # red
+    }
+    # Use provided colors or default
+    if color_dict is None:
+        color_dict = default_colors
+    else:
+        # Ensure all populations have a color
+        color_dict = {**default_colors, **color_dict}
 
-    if param_dict == None:
+    system = system.lower()
+
+    if param_dict is None:
         param_dict = fit_parameters(condition, df, output_format="dict", system=system)
-        
+
     plt.figure(figsize=(10, 6))
     time = df["Time (days)"].values
     Tconv_data = df[f"Tconv_{condition}"].values
     Treg_data = df[f"Treg_{condition}"].values
+
     if system == "basic":
         y0 = [Tconv_data[0], Treg_data[0], 0, 0]
         sol = solve_ivp(dT_dt_Basic, [time[0], time[-1]], y0, args=[param_dict], t_eval=time)
         reg_sum = False
     elif system == "memory":
-        Mreg_data = df[f"Mreg_{condition}"].values
-        y0 = [Tconv_data[0], Treg_data[0], 0, Mreg_data[0]]
+        Tmreg_data = df[f"Mreg_{condition}"].values
+        y0 = [Tconv_data[0], Treg_data[0], 0, Tmreg_data[0]]
         sol = solve_ivp(dT_dt_Advanced_memory, [time[0], time[-1]], y0, args=[param_dict], t_eval=time)
-        if reg_sum == True:
-            plt.plot(time, Mreg_data + Treg_data, 'bo', label='Mreg Data')
-            plt.plot(time, sol.y[3] + sol.y[1], 'b-', label='Mreg Model')
+        if reg_sum:
+            plt.plot(time, Tmreg_data + Treg_data, 's', markerfacecolor='none', color=color_dict["Tmreg"], markersize=5, label='Tmreg Data')
+            plt.plot(time, sol.y[3] + sol.y[1], '-', color=color_dict["Tmreg"], label='Tmreg Model')
         else:
-            plt.plot(time, Mreg_data, 'bo', label='Mreg Data')
-            plt.plot(time, sol.y[3], 'b-', label='Mreg Model')
+            plt.plot(time, Tmreg_data, 'd', markerfacecolor='none', color=color_dict["Tmreg"], markersize=5, label='Tmreg Data')
+            plt.plot(time, sol.y[3], '-', color=color_dict["Tmreg"], label='Tmreg Model')
     elif system == "cytokine":
         IL2_data = df[f"IL2_{condition}"].values
         y0 = [Tconv_data[0], Treg_data[0], IL2_data[0], 0]
         sol = solve_ivp(dT_dt_Advanced_cytokine, [time[0], time[-1]], y0, args=[param_dict], t_eval=time)
-        plt.plot(time, IL2_data, 'bo', label='IL2 Data')
-        plt.plot(time, sol.y[2], 'b-', label='IL2 Model')
+        plt.plot(time, IL2_data, '^', markerfacecolor='none', color=color_dict["IL2"], markersize=5, label='IL-2 Data')
+        plt.plot(time, sol.y[2], '-', color=color_dict["IL2"], label='IL-2 Model')
         reg_sum = False
     else:
-        raise ValueError("No valid system given.")        
-    
-    plt.plot(time, Tconv_data, 'ro', label='Tconv Data')
-    plt.plot(time, sol.y[0], 'r-', label='Tconv Model')
-    if reg_sum == False:
-        plt.plot(time, Treg_data, 'go', label='Treg Data')
-        plt.plot(time, sol.y[1], 'g-', label='Treg Model')
+        raise ValueError("No valid system given.")
 
-    plt.xlabel('Time (days)')
-    plt.ylabel('Concentration (Units/L)')
-    plt.title(f'Fit of $\mathbf{{{system.capitalize()}}}$ ODE Model to $\mathbf{{{condition.capitalize()}}}$ Condition Data')
-    plt.legend()
-    plt.show()
+    plt.plot(time, Tconv_data, 'o', markerfacecolor='none', color=color_dict["Tconv"], markersize=5, label='Tconv Data')
+    plt.plot(time, sol.y[0], '-', color=color_dict["Tconv"], label='Tconv Model')
+
+    if not reg_sum:
+        plt.plot(time, Treg_data, 's', markerfacecolor='none',color=color_dict["Treg"], markersize=5, label='Treg Data')
+        plt.plot(time, sol.y[1], '-', color=color_dict["Treg"], label='Treg Model')
+
+    plt.xlabel('Time (days)', fontsize=14)
+    plt.ylabel('Concentration (Units/L)', fontsize=14)
+    plt.title(f'Fit of IL-2 ODE Model to $\mathbf{{{condition.capitalize()}}}$ Condition Data', fontsize=24)
+    # $\mathbf{{{system.capitalize()}}}$
+
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.subplots_adjust(left=0.05, bottom=0.09, right=0.98, top=0.94, wspace=0.2, hspace=0.2)
+
+    param_text = ""
+    for key, value in param_dict.items():
+        low, high = bounds[key]
+        note = ""
+        if value <= low + value / 1000:
+            note = "(min)"
+        elif value >= high - value / 1000:
+            note = "(max)"
+        param_text += f'{latex_symbols[key]}: {value:.3g}{note}\n'
+
+    plt.gca().text(
+        0.98, 0.98, param_text,
+        transform=plt.gca().transAxes,
+        fontsize=18,
+        verticalalignment='top',
+        horizontalalignment='right',
+        bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.9, edgecolor='black')
+    )
+    plt.legend(fontsize=18)
+    plt.show()    
 
 def compare_conditions(conditions, df, bounds=bounds, params_to_compare=None, params_to_skip=None, parameters_to_fit=None, system="Memory", logplot=True):
     param_values = {}
@@ -252,12 +292,8 @@ def sensitivity_analysis(condition, df, parameter_name, params=None, system="Mem
         modified_params = copy.deepcopy(params)
         modified_params[parameter_name] = base_value * (1 + var)
         scores = model_accuracy(condition, df, modified_params, system=system, metric=metric, intergration_method="BDF")
-  
         metric_score = np.mean(list(scores.values()))
-        
-
-        if metric_score < 0:
-            metric_score =0
+ 
         variation_label = f"{(1+var)*100:.0f}%"
         print(f"{parameter_name} = {modified_params[parameter_name]} ({(1+var)*100:.0f}%) ; {metric.capitalize()} Score = {metric_score}")
         results.append({"Variation": f"{variation_label}", "Score": metric_score} )
@@ -274,8 +310,7 @@ def sensitivity_analysis(condition, df, parameter_name, params=None, system="Mem
     # Compute sum of absolute differences from baseline (excluding baseline itself)
     diff_sum = sum(abs(score - baseline_score) for idx, score in enumerate(metric_scores) if idx != baseline_index)
     print(f"Sum of absolute {metric.capitalize()} differences from baseline for {parameter_name}: {diff_sum:.4f}")
-    
-    
+    print(results)
     return {
         "Results": pd.DataFrame(results),
         "Sum_Differences": diff_sum
@@ -349,7 +384,7 @@ def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], 
                 Tconv_data, Tconv_model = reference_sol.y[0], compare_sol.y[0]
                 Treg_data, Treg_model = reference_sol.y[1], compare_sol.y[1]
                 IL2_data, IL2_model = reference_sol.y[2], compare_sol.y[2]
-                Mreg_data, Mreg_model = reference_sol.y[3], compare_sol.y[3]
+                Tmreg_data, Tmreg_model = reference_sol.y[3], compare_sol.y[3]
                 # Compute chosen metric
                 # Compute metrics
                 results = {}
@@ -360,7 +395,7 @@ def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], 
                     if system == "cytokine":
                         results["MSE_IL2"] = np.mean((IL2_model - IL2_data) ** 2)
                     if system == "memory":
-                        results["MSE_Mreg"] = np.mean((Mreg_model - Mreg_data) ** 2)
+                        results["MSE_Tmreg"] = np.mean((Tmreg_model - Tmreg_data) ** 2)
     
                 if metric.lower() in ["r"]:
                     results["r_Tconv"], _ = pearsonr(Tconv_model, Tconv_data)
@@ -368,7 +403,7 @@ def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], 
                     if system == "cytokine":
                         results["r_IL2"], _ = pearsonr(IL2_model, IL2_data)
                     if system == "memory":
-                        results["r_Mreg"], _ = pearsonr(Mreg_model, Mreg_data)
+                        results["r_Tmreg"], _ = pearsonr(Tmreg_model, Tmreg_data)
 
                 if metric.lower() in ["r2"]:
                     ss_tot_Tconv = np.sum((Tconv_data - np.mean(Tconv_data)) ** 2)
@@ -384,10 +419,10 @@ def sensitivity_analysis_all(system="memory", y0=[100,1,25,1], t_span=[0, 100], 
                         ss_res_IL2 = np.sum((IL2_data - IL2_model) ** 2)
                         results["R2_IL2"] = max(0., 1 - (ss_res_IL2 / ss_tot_IL2))
                     if system == "memory":
-                        print(np.mean(Mreg_data))
-                        ss_tot_Mreg = np.sum((Mreg_data - np.mean(Mreg_data)) ** 2)
-                        ss_res_Mreg = np.sum((Mreg_data - Mreg_model) ** 2)
-                        results["R2_Mreg"] = max(0., 1 - (ss_res_Mreg / ss_tot_Mreg))
+                        print(np.mean(Tmreg_data))
+                        ss_tot_Tmreg = np.sum((Tmreg_data - np.mean(Tmreg_data)) ** 2)
+                        ss_res_Tmreg = np.sum((Tmreg_data - Tmreg_model) ** 2)
+                        results["R2_Tmreg"] = max(0., 1 - (ss_res_Tmreg / ss_tot_Tmreg))
     
                 if metric.lower() not in ["mse", "r", "r2"]:
                     raise ValueError("Invalid metric chosen. Choose 'mse', 'r', or 'r2'.")
@@ -449,7 +484,7 @@ def sensitivity_analysis_all_data(condition, df, system="memory", params=None, b
         if param in params_to_compare and param not in params_to_skip:
             results[param] = {}
             df_results = sensitivity_analysis(condition, df, param, params=params, system=system, metric=metric, variations=variations)
-            score_values = [max(score, 0) for score in df_results["Results"]["Score"].values]
+            score_values = [score for score in df_results["Results"]["Score"].values]
             results[param] = score_values
 
     
@@ -507,10 +542,10 @@ def tornado_plot_sensitivity(condition, system="memory", params=None, params_to_
         sens_results = sensitivity_analysis_all_data(condition, df, system, all_params, params_to_compare=param_names, metric=metric, variations=variations, show_plot=False)
     else:
         sens_results = sensitivity_analysis_all(system, params_to_compare=param_names, metric=metric, variations=variations, show_plot=False)
-
+        
     for param in param_names:
         if param in params_to_compare and param not in params_to_skip:
-            scores = [max(score, 0) for score in sens_results[param]]
+            scores = [score for score in sens_results[param]]
             base_score = scores[1]
             neg_diff = scores[0] - base_score
             pos_diff = scores[2] - base_score
@@ -518,9 +553,9 @@ def tornado_plot_sensitivity(condition, system="memory", params=None, params_to_
             # Store diffs as signed values to plot: left = -20%, right = +20%
             results.append((neg_diff, pos_diff))
             if df is not None:
-                labels.append(f"{param} ({all_params[param]:.4e})")
+                labels.append(f"{latex_symbols[param]} ({all_params[param]:.2e})")
             else: 
-                labels.append(f"{param}")
+                labels.append(f"{latex_symbols[param]}")
 
     # Sort by total absolute impact
     total_impacts = [abs(neg) + abs(pos) for neg, pos in results]
@@ -570,8 +605,8 @@ def model_accuracy(condition, df, param_dict=None, system="Memory", metric ="r",
         sol = solve_ivp(dT_dt_Basic, [time[0], time[-1]], y0, args=[param_dict], t_eval=time, method=intergration_method )
 
     elif system == "memory":
-        Mreg_data = df[f"Mreg_{condition}"].values
-        y0 = [Tconv_data[0], Treg_data[0], 0, Mreg_data[0]]
+        Tmreg_data = df[f"Mreg_{condition}"].values
+        y0 = [Tconv_data[0], Treg_data[0], 0, Tmreg_data[0]]
         sol = solve_ivp(dT_dt_Advanced_memory, [time[0], time[-1]], y0, args=[param_dict], t_eval=time, method=intergration_method)
         
     elif system == "cytokine":
@@ -586,7 +621,7 @@ def model_accuracy(condition, df, param_dict=None, system="Memory", metric ="r",
     Tconv_model = sol.y[0]
     Treg_model = sol.y[1]
     IL2_model = sol.y[2]
-    Mreg_model = sol.y[3]
+    Tmreg_model = sol.y[3]
     # Compute chosen metric
     # Compute metrics
     results = {}
@@ -597,7 +632,7 @@ def model_accuracy(condition, df, param_dict=None, system="Memory", metric ="r",
         if system == "cytokine":
             results["MSE_IL2"] = np.mean((IL2_model - IL2_data) ** 2)
         if system == "memory":
-            results["MSE_Mreg"] = np.mean((Mreg_model - Mreg_data) ** 2)
+            results["MSE_Tmreg"] = np.mean((Tmreg_model - Tmreg_data) ** 2)
     
     if metric.lower() in ["r", "all"]:
         results["r_Tconv"], _ = pearsonr(Tconv_model, Tconv_data)
@@ -605,7 +640,7 @@ def model_accuracy(condition, df, param_dict=None, system="Memory", metric ="r",
         if system == "cytokine":
             results["r_IL2"], _ = pearsonr(IL2_model, IL2_data)
         if system == "memory":
-            results["r_Mreg"], _ = pearsonr(Mreg_model, Mreg_data)
+            results["r_Tmreg"], _ = pearsonr(Tmreg_model, Tmreg_data)
 
     if metric.lower() in ["r2", "all"]:
         ss_tot_Tconv = np.sum((Tconv_data - np.mean(Tconv_data)) ** 2)
@@ -621,9 +656,9 @@ def model_accuracy(condition, df, param_dict=None, system="Memory", metric ="r",
             ss_res_IL2 = np.sum((IL2_data - IL2_model) ** 2)
             results["R2_IL2"] = 1 - (ss_res_IL2 / ss_tot_IL2)
         if system == "memory":
-            ss_tot_Mreg = np.sum((Mreg_data - np.mean(Mreg_data)) ** 2)
-            ss_res_Mreg = np.sum((Mreg_data - Mreg_model) ** 2)
-            results["R2_Mreg"] = 1 - (ss_res_Mreg / ss_tot_Mreg)
+            ss_tot_Tmreg = np.sum((Tmreg_data - np.mean(Tmreg_data)) ** 2)
+            ss_res_Tmreg = np.sum((Tmreg_data - Tmreg_model) ** 2)
+            results["R2_Tmreg"] = 1 - (ss_res_Tmreg / ss_tot_Tmreg)
     
     if metric.lower() not in ["mse", "r", "r2", "all"]:
         raise ValueError("Invalid metric chosen. Choose 'mse', 'r', or 'r2'.")

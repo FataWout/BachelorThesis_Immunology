@@ -28,9 +28,9 @@ param = {
     "IL2_consumption": 0.2,
     "K_reg": 500.0,
     "tau": 5.0,
-    "Mreg_conversion_base": 0.005,
-    "Mreg_growth": 0.01,
-    "Mreg_decay": 0.005
+    "Tmreg_conversion_base": 0.005,
+    "Tmreg_growth": 0.01,
+    "Tmreg_decay": 0.005
 }
 
 parameter_descriptions = {
@@ -48,9 +48,9 @@ parameter_descriptions = {
     "IL2_consumption": "Rate at which IL-2 cytokines are consumed by T cells.",
     "K_reg": "Regulatory constant affecting immune suppression and activation.",
     "tau": "Time scaling constant for immune system response delays.",
-    "Mreg_conversion_base": "Base conversion rate of Treg cells into Mreg cells.",
-    "Mreg_growth": "Growth rate of Mreg cells, determining their proliferation rate.",
-    "Mreg_decay": "Decay rate of Mreg cells, representing their natural death rate."
+    "Tmreg_conversion_base": "Base conversion rate of Treg cells into Tmreg cells.",
+    "Tmreg_growth": "Growth rate of Tmreg cells, determining their proliferation rate.",
+    "Tmreg_decay": "Decay rate of Tmreg cells, representing their natural death rate."
 }
 
 def dT_dt_Advanced_cytokine_mod(t, populations):
@@ -96,7 +96,7 @@ def get_color(value, parameter_values, cmap = cm.brg):
 def compare_variable_values(parameter_name, parameter_values, param, 
                             initial_populations, timestamps=(0, 100, 100),
                             equation_systems=["Standard"],
-                            plot_Mreg=True, plot_Cytokine=True,
+                            plot_Tmreg=True, plot_Cytokine=True,
                             saveplot=False, 
                             directory_path=r"C:\Users\woutg\Documents\Wout\Universiteit\Bachelor 3\Bachelorproef\Afbeeldingen\Assignment_1"):
     """Plots comparison between given parameter values in given equation systems.
@@ -139,8 +139,8 @@ def compare_variable_values(parameter_name, parameter_values, param,
         if equation_system == "MemoryEffects" or equation_system == "Cytokine":
             if plot_Cytokine:
                 ax[i].plot(timestamps, reference_solution[:, 2], label=f"Cytokine levels ({equation_system})", linestyle=(0, (1, 1)), color="grey", linewidth=2)
-            if plot_Mreg:
-                ax[i].plot(timestamps, reference_solution[:, 3], label=f"Reference Mreg ({reference_value})", linestyle="dashdot", color="grey", linewidth=1)
+            if plot_Tmreg:
+                ax[i].plot(timestamps, reference_solution[:, 3], label=f"Reference Tmreg ({reference_value})", linestyle="dashdot", color="grey", linewidth=1)
         ax[i].plot(timestamps, reference_solution[:, 0], label=f"Reference Tconv ({reference_value})", linestyle="solid", color="grey", linewidth=1)
         ax[i].plot(timestamps, reference_solution[:, 1], label=f"Reference Treg ({reference_value})", linestyle=(0, (5, 5)), color="grey", linewidth=1)
         
@@ -155,8 +155,8 @@ def compare_variable_values(parameter_name, parameter_values, param,
             if equation_system == "Memory" or equation_system == "Cytokine":
                 if plot_Cytokine:
                     ax[i].plot(timestamps, altered_solution[:, 2], label=f"Cytokine levels ({value})", linestyle=(0, (1, 1)), color=get_color(index, indices), linewidth=2)
-                if plot_Mreg:
-                    ax[i].plot(timestamps, altered_solution[:, 3], label=f"Mreg ({value})", linestyle="dashdot", color=get_color(index, indices), linewidth=1)
+                if plot_Tmreg:
+                    ax[i].plot(timestamps, altered_solution[:, 3], label=f"Tmreg ({value})", linestyle="dashdot", color=get_color(index, indices), linewidth=1)
             ax[i].plot(timestamps, altered_solution[:, 0], label=f"Tconv ({value})", linestyle="solid", color=get_color(index, indices))
             ax[i].plot(timestamps, altered_solution[:, 1], label=f"Treg ({value})", linestyle=(0, (5, 5)), color=get_color(index, indices))
         
@@ -188,7 +188,7 @@ def compare_variable_values(parameter_name, parameter_values, param,
     plt.show()
    
 def compare_equation_systems(systems_to_compare, timestamps,
-                            plot_Mreg = True, plot_Cytokine = True):
+                            plot_Tmreg = True, plot_Cytokine = True):
     """
     Compare the dynamics of Tconv and Treg populations for different systems of equations.
     
@@ -206,8 +206,8 @@ def compare_equation_systems(systems_to_compare, timestamps,
         if systems_to_compare[0] == "Memory" or systems_to_compare[0] == "Cytokine":
             if plot_Cytokine == True:    
                 plt.plot(timestamps, solution[:, 2], label=f"Cytokine levels")
-            if plot_Mreg == True:
-                plt.plot(timestamps, solution[:, 3], label=f"Mreg")              
+            if plot_Tmreg == True:
+                plt.plot(timestamps, solution[:, 3], label=f"Tmreg")              
 
         plt.plot(timestamps, solution[:, 0], label=f"Tconv")
         plt.plot(timestamps, solution[:, 1], label=f"Treg")
@@ -222,8 +222,8 @@ def compare_equation_systems(systems_to_compare, timestamps,
         for index, equation_system in enumerate(systems_to_compare):
             solution = solve_odeint(equation_system, timestamps=timestamps)
 
-            if equation_system == "Memory" and plot_Mreg == True:
-                plt.plot(timestamps, solution[:, 3], label=f"Mreg ({equation_system})", linestyle="--", color=get_color(index, indices), linewidth=1)
+            if equation_system == "Memory" and plot_Tmreg == True:
+                plt.plot(timestamps, solution[:, 3], label=f"Tmreg ({equation_system})", linestyle="--", color=get_color(index, indices), linewidth=1)
             if equation_system == "Cytokine" and plot_Cytokine == True:  
                  plt.plot(timestamps, solution[:, 2], label=f"Cytokine levels ({equation_system})", linestyle=(0, (1,1)), color=get_color(index, indices), linewidth=2)
                                      
@@ -241,7 +241,7 @@ def compare_equation_systems(systems_to_compare, timestamps,
     plt.show()
         
 def stochastic_effects(equation_system, param, initial_populations, timestamps, number_of_systems=3, stochastic_vars=None,
-                            plot_Mreg = True, plot_Cytokine = True):
+                            plot_Tmreg = True, plot_Cytokine = True):
     """
     Compare the dynamics of Tconv and Treg populations for different systems of equations,
     with optional stochastic changes to specific variables.
@@ -292,8 +292,8 @@ def stochastic_effects(equation_system, param, initial_populations, timestamps, 
         if equation_system == "Memory" or equation_system == "Cytokine":
             if plot_Cytokine == True:    
                 ax_plot.plot(timestamps, solution[:, 2], label=f"Cytokine levels {index}", linestyle=(0,(1,1)), color=get_color(index, indices), linewidth=2)
-            if plot_Mreg == True:
-                ax_plot.plot(timestamps, solution[:, 3], label=f"Mreg {index}", linestyle="dashdot", color=get_color(index, indices), linewidth=1)
+            if plot_Tmreg == True:
+                ax_plot.plot(timestamps, solution[:, 3], label=f"Tmreg {index}", linestyle="dashdot", color=get_color(index, indices), linewidth=1)
 
         # Restore original variable values
         param = original_values
@@ -399,7 +399,7 @@ def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory", pl
 
     Args:
         param: Dictionary of parameters.
-        y0: List of initial conditions [Tconv, Treg, IL2, Mreg].
+        y0: List of initial conditions [Tconv, Treg, IL2, Tmreg].
         t_span: Tuple for the time span (start, end).
         t_eval: Array of time points at which to store the computed solutions.
 
@@ -430,7 +430,7 @@ def solve_and_plot_system(params, y0, t_span, t_eval=None, system = "memory", pl
     if system == "memory":
         if plot_all==True:
             plt.plot(sol.t, sol.y[1], label='Treg Population', color='tab:orange')
-            plt.plot(sol.t, sol.y[3], label='Mreg Population', color='tab:green')
+            plt.plot(sol.t, sol.y[3], label='Tmreg Population', color='tab:green')
         else: 
             plt.plot(sol.t, sol.y[1]+sol.y[3], label='Treg Population', color='tab:orange')
     elif system == "cytokine":
